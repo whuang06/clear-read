@@ -11,3 +11,68 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Custom animations and effects */
+@layer utilities {
+  /* Animated gradient text effect */
+  .animate-gradient-x {
+    background-size: 200% 200%;
+    animation: gradient-x 8s ease infinite;
+  }
+
+  @keyframes gradient-x {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  /* Water droplet shimmering effect */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .shimmer::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+    transform: rotate(30deg);
+    animation: shimmer 4s linear infinite;
+    pointer-events: none;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%) translateY(-100%) rotate(30deg);
+    }
+    100% {
+      transform: translateX(100%) translateY(100%) rotate(30deg);
+    }
+  }
+  
+  /* Gentle pulse animation */
+  .pulse-gentle {
+    animation: pulse-gentle 3s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-gentle {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1.02);
+    }
+  }
+}
