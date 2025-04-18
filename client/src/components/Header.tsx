@@ -12,7 +12,7 @@ export function Header() {
           <div className="flex items-center space-x-3">
             <BookOpen className="h-8 w-8 text-primary-500" />
             <h1 className="text-xl font-semibold text-gray-900">
-              Adaptive Reading Companion
+              Clear Read
             </h1>
           </div>
           <nav className="flex space-x-4">

@@ -50,7 +50,7 @@ export function TextInput({ open, onOpenChange }: TextInputProps) {
         <DialogHeader>
           <DialogTitle>Start a New Reading</DialogTitle>
           <DialogDescription>
-            Paste or type the text you want to analyze. Our system will break it into meaningful chunks and guide you through comprehension exercises.
+            Paste or type the text you want to analyze. Clear Read will break it into meaningful chunks and guide you through comprehension exercises.
           </DialogDescription>
         </DialogHeader>
         
