@@ -3,7 +3,8 @@ import json
 from typing import List, Optional
 
 # Gemini 2.0 Flash API configuration
-GEMINI_API_KEY = "AIzaSyADXjhUVt51IwsTIqeP-3IE-9T9Rak1P4E"
+import os
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 
 

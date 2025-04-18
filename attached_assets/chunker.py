@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
-API_KEY = os.environ.get("CHONKIE_API_KEY", "d8ed4e94-654c-4df1-929e-f97a6c2f13c6")
+API_KEY = os.environ.get("CHONKIE_API_KEY", "")
 CHUNK_URL = "https://api.chonkie.ai/v1/chunk/semantic"  # Correct endpoint (no trailing slash)
 
 @dataclass
