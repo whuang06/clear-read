@@ -10,7 +10,7 @@ interface ReadingContextType {
   moveToNextChunk: () => void;
   moveToPreviousChunk: () => void;
   setActiveChunkIndex: (index: number) => void;
-  resetSession: (preserveText?: boolean) => void;
+  resetSession: () => void;
 }
 
 const ReadingContext = createContext<ReadingContextType | undefined>(undefined);
@@ -31,19 +31,9 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   // Reset session to initial state
-  const resetSession = (preserveText: boolean = false) => {
-    console.log("Resetting reading session state", preserveText ? "while preserving text" : "completely");
-    
-    if (preserveText) {
-      const originalText = session.originalText;
-      // Reset but keep the original text
-      setSession({
-        ...initialSession,
-        originalText
-      });
-    } else {
-      setSession(initialSession);
-    }
+  const resetSession = () => {
+    console.log("Resetting reading session state");
+    setSession(initialSession);
   };
 
   const processText = async (text: string): Promise<void> => {
