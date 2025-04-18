@@ -22,8 +22,10 @@ export function ChunkReader() {
   
   // Initialize responses when chunk changes
   useEffect(() => {
-    if (activeChunk && activeQuestions) {
-      const existingResponses = responses[activeChunk.id] || [];
+    if (activeChunk && activeQuestions && activeQuestions.length > 0) {
+      const chunkId = activeChunk.id;
+      const existingResponses = responses[chunkId] || [];
+      
       if (existingResponses.length > 0) {
         setUserResponses(existingResponses);
         setShowFeedback(!!activeFeedback);
@@ -35,7 +37,7 @@ export function ChunkReader() {
         setShowFeedback(false);
       }
     }
-  }, [activeChunk, activeQuestions, responses, feedback, activeChunk?.id]);
+  }, [activeChunk?.id, activeQuestions, responses, feedback]);
 
   if (!activeChunk) return <div>No active chunk to display</div>;
 

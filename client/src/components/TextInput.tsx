@@ -38,12 +38,24 @@ export function TextInput({ open, onOpenChange }: TextInputProps) {
     
     try {
       await processText(inputText);
-      // Close dialog after successful processing
-      // Small delay to ensure state updates properly
-      setTimeout(() => {
-        setIsLoading(false);
+      
+      // After successful processing, update UI
+      setIsLoading(false);
+      
+      // Check if the session is now in reading state and has chunks
+      if (session.status === "reading" && session.chunks.length > 0) {
+        console.log("Text processed successfully, now in reading state with chunks");
+        // Close the dialog
         onOpenChange(false);
-      }, 500);
+      } else {
+        console.log("Text processed but not in reading state yet. Status:", session.status);
+        // Wait a bit and check again - sometimes the state update takes time
+        setTimeout(() => {
+          if (session.status === "reading" || session.chunks.length > 0) {
+            onOpenChange(false);
+          }
+        }, 1000);
+      }
     } catch (err: any) {
       console.error("Error in TextInput handleSubmit:", err);
       setIsLoading(false);

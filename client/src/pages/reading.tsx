@@ -16,20 +16,37 @@ export default function Reading() {
 
   // Check if we have content to show
   const hasContent = session.chunks.length > 0;
+  const isProcessing = session.status === "processing";
+  const isReading = session.status === "reading";
   
-  // Show input modal if no content
+  // Show input modal if no content and not currently processing
   useEffect(() => {
-    if (!hasContent) {
+    if (!hasContent && !isProcessing) {
       setTextInputOpen(true);
+    } else if (isReading && textInputOpen) {
+      // If we're in reading state but modal is still open, close it
+      setTextInputOpen(false);
     }
-  }, [hasContent]);
+  }, [hasContent, isProcessing, isReading, textInputOpen]);
   
   // Handle modal close without input
   const handleModalOpenChange = (open: boolean) => {
+    // If we're in processing state, don't allow closing the modal
+    if (isProcessing && !open) {
+      return;
+    }
+    
+    // If we're already in reading state, allow closing the modal
+    if (isReading) {
+      setTextInputOpen(open);
+      return;
+    }
+    
     setTextInputOpen(open);
-    // Only redirect to home if the user explicitly closed the modal without submitting any content
-    // Don't redirect when the modal is closed after successful text processing
-    if (!open && !hasContent && session.status !== "processing") {
+    
+    // Only redirect to home if the user explicitly closed the modal without content
+    // AND we're not in processing or reading state
+    if (!open && !hasContent && !isProcessing && !isReading) {
       toast({
         title: "No Content Provided",
         description: "Redirecting to home page.",

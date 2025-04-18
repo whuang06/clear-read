@@ -133,11 +133,15 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
       // Final update with questions and reading status
       console.log("Finalizing with questions for", Object.keys(questions).length, "chunks");
       
-      setSession(prev => ({
-        ...prev,
-        questions,
-        status: "reading"
-      }));
+      // Explicitly set the status to reading to ensure proper UI transition
+      setSession(prev => {
+        console.log("Setting final session state from", prev.status, "to reading");
+        return {
+          ...prev,
+          questions,
+          status: "reading" // This triggers the reading interface to display
+        };
+      });
       
       if (questionErrorEncountered) {
         toast({
