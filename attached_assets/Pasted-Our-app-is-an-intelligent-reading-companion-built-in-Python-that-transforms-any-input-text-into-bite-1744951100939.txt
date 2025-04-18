@@ -1,0 +1,15 @@
+Our app is an intelligent reading companion built in Python that transforms any input text into bite‑sized, semantically coherent chunks, then guides the reader through comprehension exercises and adapts each passage to their performance. When you feed it a block of text, it calls the Chonkie API’s SemanticChunker to split the content into meaningful segments, storing each chunk as a lightweight object ready for further processing.
+
+Once the text is chunked, the app leverages Google’s Gemini 2.0 Flash model to generate open‑ended questions tailored to each chunk. Readers answer these questions in free form, and their responses are sent back to Gemini for a structured review. The review includes both a human‑readable critique and a numeric rating on a scale you define, so you can immediately see where understanding is solid and where extra support is needed.
+
+Behind the scenes, the system maintains two running metrics: the difficulty level of each chunk (as assessed by Gemini) and the reader’s performance history. After each review, the app updates the reader’s profile score and compares it to the upcoming chunk’s difficulty. If a reader struggles—receiving a low rating relative to the chunk’s complexity—the next segment is automatically simplified by Gemini in proportion to the gap, preserving the original length and nuance while easing comprehension. When the reader demonstrates mastery, the app either returns to the original text or gradually reintroduces complexity.
+
+All of these steps are encapsulated in modular scripts:
+• chunker.py handles Chonkie API integration and chunk storage.
+• store_chunks.py provides optional persistence to a database or cache.
+• question_generator.py formulates and sends prompts to Gemini for question creation.
+• difficulty_assessor.py asks Gemini to assign each chunk a normalized difficulty score.
+• response_reviewer.py gathers reader answers and produces structured feedback with a custom rating range.
+• adaptive_reader.py orchestrates the adaptive logic, updating reader performance and deciding whether to simplify or restore text.
+
+Together, these components make our app a dynamic, feedback‑driven learning environment that keeps readers challenged at just the right level.
