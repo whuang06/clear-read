@@ -36,16 +36,17 @@ export function CompletionReport() {
   
   // Handle restart with the same text
   const handleTryAgain = async () => {
+    // Reset session while preserving the original text
     const originalText = session.originalText;
-    resetSession();
     
-    // Check if original text exists before proceeding
-    if (originalText && originalText.trim().length > 0) {
-      // Small timeout to ensure state reset is complete
-      setTimeout(async () => {
-        await processText(originalText);
-      }, 50);
-    }
+    // First reset preserving the text
+    resetSession(true);
+    
+    // Then process the text with a small delay to ensure state is updated
+    setTimeout(async () => {
+      console.log("Try Again: Processing preserved text:", originalText.substring(0, 50) + "...");
+      await processText(originalText);
+    }, 100);
   };
   
   // Calculate performance trend (did they improve over time?)
@@ -160,20 +161,25 @@ export function CompletionReport() {
               <div className="absolute top-3/4 left-4 right-4 border-t border-gray-200 text-xs text-gray-400 -ml-2">25%</div>
               
               {/* Bar container */}
-              <div className="absolute bottom-0 left-0 right-0 flex justify-evenly items-end h-full">
+              <div className="absolute bottom-0 left-0 right-0 flex justify-evenly items-end h-full pt-8">
                 {chartData.length > 0 ? (
                   <>
                     {chartData.map((item) => (
                       <div key={item.chunkId} className="flex flex-col items-center" style={{ width: `${100 / Math.max(1, chartData.length)}%` }}>
-                        <div 
-                          className="w-12 rounded-t shadow-md transition-all duration-500" 
-                          style={{ 
-                            height: `${Math.max(10, item.normalizedRating)}%`,
-                            backgroundColor: item.normalizedRating >= 80 ? '#10b981' : 
-                                        item.normalizedRating >= 60 ? '#6366f1' : 
-                                        item.normalizedRating >= 40 ? '#f59e0b' : '#ef4444'
-                          }}
-                        ></div>
+                        {/* Using fixed height bar with transform for animation */}
+                        <div className="relative w-full flex justify-center">
+                          <div 
+                            className="absolute bottom-0 w-16 bg-primary rounded-t-md shadow-md" 
+                            style={{ 
+                              height: '160px', // Fixed container height (64% of parent)
+                              transform: `scaleY(${item.normalizedRating / 100})`,
+                              transformOrigin: 'bottom',
+                              backgroundColor: item.normalizedRating >= 80 ? '#10b981' : 
+                                            item.normalizedRating >= 60 ? '#6366f1' : 
+                                            item.normalizedRating >= 40 ? '#f59e0b' : '#ef4444'
+                            }}
+                          />
+                        </div>
                         <div className="text-xs mt-2 font-medium">#{item.chunkId}</div>
                         <div className="text-xs text-gray-500">{item.normalizedRating}%</div>
                       </div>
@@ -225,7 +231,7 @@ export function CompletionReport() {
             </Button>
           )}
           
-          <Button className="ml-auto flex items-center" onClick={resetSession}>
+          <Button className="ml-auto flex items-center" onClick={() => resetSession(false)}>
             Start New Text
             <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
