@@ -43,17 +43,14 @@ const SCRIPTS_DIR = path.join(process.cwd(), "attached_assets");
 
 // Helper function to execute Python scripts
 async function execPythonScript(scriptPath: string, args: object): Promise<string> {
-  // Write the args to a temporary file instead of passing them directly in the command
-  // This avoids shell escaping issues
-  const tempArgsPath = path.join(SCRIPTS_DIR, "temp_args.json");
+  // Instead of using a file, we'll pass the arguments directly to the script as a JSON string
+  // This avoids file path issues
   const argsJson = JSON.stringify(args);
   
   try {
-    // Write args to file
-    fs.writeFileSync(tempArgsPath, argsJson, 'utf8');
-    
-    // Execute Python script with file path as argument
-    const command = `python3 ${scriptPath} "${tempArgsPath}"`;
+    // Execute Python script with args as a direct JSON parameter
+    // Use single quotes around the JSON string to avoid shell escaping issues
+    const command = `python3 ${scriptPath} '${argsJson.replace(/'/g, "\\'")}'`;
     
     try {
       const { stdout, stderr } = await execPromise(command);
@@ -63,22 +60,16 @@ async function execPythonScript(scriptPath: string, args: object): Promise<strin
       return stdout;
     } catch (error: any) {
       console.error(`Error executing Python script: ${error.message}`);
+      if (error.stdout) {
+        console.error(`Python stdout: ${error.stdout}`);
+      }
       if (error.stderr) {
         console.error(`Python stderr: ${error.stderr}`);
       }
       throw error;
-    } finally {
-      // Clean up temp file
-      try {
-        if (fs.existsSync(tempArgsPath)) {
-          fs.unlinkSync(tempArgsPath);
-        }
-      } catch (unlinkError) {
-        console.error("Failed to delete temporary args file:", unlinkError);
-      }
     }
   } catch (error) {
-    console.error("Error writing args to temp file:", error);
+    console.error("Error executing Python script:", error);
     throw error;
   }
 }
@@ -106,9 +97,8 @@ try:
     
     from chunker import chunk_text
 
-    # Parse arguments from the file
-    with open(sys.argv[1], 'r') as f:
-        args = json.loads(f.read())
+    # Parse arguments from command line JSON string
+    args = json.loads(sys.argv[1])
     text = args.get("text", "")
     
     if not text or len(text.strip()) == 0:
@@ -255,9 +245,8 @@ try:
     
     from question_generator import generate_questions_from_chunk
 
-    # Parse arguments from the file
-    with open(sys.argv[1], 'r') as f:
-        args = json.loads(f.read())
+    # Parse arguments from command line JSON string
+    args = json.loads(sys.argv[1])
     text = args.get("text", "")
 
     # Generate questions
@@ -338,9 +327,8 @@ try:
     
     from difficulty_assessor import rate_chunk_difficulty
 
-    # Parse arguments from the file
-    with open(sys.argv[1], 'r') as f:
-        args = json.loads(f.read())
+    # Parse arguments from command line JSON string
+    args = json.loads(sys.argv[1])
     text = args.get("text", "")
 
     # Rate difficulty
@@ -421,9 +409,8 @@ try:
     
     from response_reviewer import review_responses
 
-    # Parse arguments from the file
-    with open(sys.argv[1], 'r') as f:
-        args = json.loads(f.read())
+    # Parse arguments from command line JSON string
+    args = json.loads(sys.argv[1])
     chunk = args.get("chunk", "")
     questions = args.get("questions", [])
     responses = args.get("responses", [])
@@ -534,9 +521,8 @@ try:
     from adaptive_reader import AdaptiveReader
     from difficulty_assessor import rate_chunk_difficulty
 
-    # Parse arguments from the file
-    with open(sys.argv[1], 'r') as f:
-        args = json.loads(f.read())
+    # Parse arguments from command line JSON string
+    args = json.loads(sys.argv[1])
     text = args.get("text", "")
     rating = args.get("rating", 0)
     performance = args.get("performance", 0)

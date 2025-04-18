@@ -141,25 +141,38 @@ export function CompletionReport() {
             </div>
             
             {/* Simple bar chart representation */}
-            <div className="h-40 flex items-end space-x-1">
-              {chartData.map((item) => (
-                <div key={item.chunkId} className="flex-1 flex flex-col items-center">
-                  <div 
-                    className="w-full bg-primary-500 rounded-t" 
-                    style={{ 
-                      height: `${Math.max(5, item.normalizedRating)}%`,
-                      background: item.normalizedRating >= 80 ? '#10b981' : 
-                               item.normalizedRating >= 60 ? '#6366f1' : 
-                               item.normalizedRating >= 40 ? '#f59e0b' : '#ef4444'
-                    }}
-                  ></div>
-                  <span className="text-xs mt-1">{item.chunkId}</span>
+            <div className="relative h-64 flex items-end space-x-4 mb-8 px-4">
+              {chartData.length > 0 ? (
+                <>
+                  {chartData.map((item) => (
+                    <div key={item.chunkId} className="flex-1 flex flex-col items-center">
+                      <div className="absolute top-0 left-0 right-0 border-t border-gray-200 text-xs text-gray-400 -ml-2">100%</div>
+                      <div className="absolute top-1/4 left-0 right-0 border-t border-gray-200 text-xs text-gray-400 -ml-2">75%</div>
+                      <div className="absolute top-1/2 left-0 right-0 border-t border-gray-200 text-xs text-gray-400 -ml-2">50%</div>
+                      <div className="absolute top-3/4 left-0 right-0 border-t border-gray-200 text-xs text-gray-400 -ml-2">25%</div>
+                      <div 
+                        className="w-full min-w-8 max-w-16 rounded-t transition-all duration-500" 
+                        style={{ 
+                          height: `${Math.max(5, item.normalizedRating)}%`,
+                          backgroundColor: item.normalizedRating >= 80 ? '#10b981' : 
+                                       item.normalizedRating >= 60 ? '#6366f1' : 
+                                       item.normalizedRating >= 40 ? '#f59e0b' : '#ef4444'
+                        }}
+                      ></div>
+                      <div className="text-xs mt-2 font-medium">#{item.chunkId}</div>
+                      <div className="text-xs text-gray-500">{item.normalizedRating}%</div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="w-full flex items-center justify-center h-40 text-gray-400">
+                  No performance data available
                 </div>
-              ))}
+              )}
             </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>First Chunk</span>
-              <span>Last Chunk</span>
+            <div className="flex justify-between text-sm text-gray-600 mt-4 border-t pt-4">
+              <span className="font-medium">First Chunk</span>
+              <span className="font-medium">Last Chunk</span>
             </div>
           </div>
           
