@@ -1,10 +1,11 @@
 import requests
 import json
+import os
 from typing import Optional
 from difficulty_assessor import rate_chunk_difficulty
 
 # Gemini 2.0 Flash API configuration
-GEMINI_API_KEY = "AIzaSyADXjhUVt51IwsTIqeP-3IE-9T9Rak1P4E"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyADXjhUVt51IwsTIqeP-3IE-9T9Rak1P4E")
 API_URL = (
     f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 )
