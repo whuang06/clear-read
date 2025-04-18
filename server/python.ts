@@ -190,10 +190,24 @@ except Exception as e:
           throw new Error("Invalid response format from Python: expected array of chunks");
         }
         
+        // Get difficulty for the first chunk only
+        let firstChunkDifficulty: number | undefined;
+        try {
+          if (parsedOutput.length > 0) {
+            firstChunkDifficulty = await assessDifficulty(parsedOutput[0].text);
+            console.log(`First chunk difficulty: ${firstChunkDifficulty}`);
+          }
+        } catch (difficultyError) {
+          console.error("Failed to assess difficulty for first chunk:", difficultyError);
+          // Continue without setting difficulty
+        }
+        
         const chunks: Chunk[] = parsedOutput.map((chunk: any, index: number) => ({
           ...chunk,
           id: index + 1,
-          status: index === 0 ? "active" : "pending"
+          status: index === 0 ? "active" : "pending",
+          // Only set difficulty for the first chunk
+          difficulty: index === 0 ? firstChunkDifficulty : undefined
         }));
         
         return chunks;

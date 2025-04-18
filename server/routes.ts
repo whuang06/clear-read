@@ -38,23 +38,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Assess difficulty for each chunk
-      for (let i = 0; i < chunks.length; i++) {
-        try {
-          const difficulty = await assessDifficulty(chunks[i].text);
-          chunks[i].difficulty = difficulty;
-        } catch (error) {
-          console.error(`Failed to assess difficulty for chunk ${i}:`, error);
-          // Set a default difficulty value
-          chunks[i].difficulty = 1000; // Medium difficulty as fallback
+      // Only assess difficulty for the first chunk
+      try {
+        if (chunks.length > 0) {
+          const firstChunkDifficulty = await assessDifficulty(chunks[0].text);
+          chunks[0].difficulty = firstChunkDifficulty;
+          console.log(`First chunk difficulty: ${firstChunkDifficulty}`);
         }
+      } catch (error) {
+        console.error(`Failed to assess difficulty for first chunk:`, error);
+        // Continue without setting difficulty
       }
       
       // Add ID and status to each chunk
       const processedChunks = chunks.map((chunk, index) => ({
         ...chunk,
         id: index + 1,
-        status: index === 0 ? "active" : "pending"
+        status: index === 0 ? "active" : "pending",
+        // Ensure that only the first chunk has a difficulty value
+        difficulty: index === 0 ? chunk.difficulty : undefined
       }));
       
       return res.json({ chunks: processedChunks });
@@ -67,10 +69,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Generate questions for a chunk
+  // Generate questions for a chunk and assess difficulty if needed
   app.post("/api/generate-questions", async (req, res) => {
     try {
-      const { chunkId, text } = req.body;
+      const { chunkId, text, assessDifficultyNeeded = true } = req.body;
       
       if (!text || typeof text !== "string") {
         return res.status(400).json({ message: "Text is required" });
@@ -80,8 +82,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Chunk ID is required" });
       }
       
+      // Initialize variables for questions and difficulty
       let questions;
+      let difficulty;
       
+      // Start the difficulty assessment in parallel if needed
+      const difficultyPromise = assessDifficultyNeeded 
+        ? assessDifficulty(text).catch(err => {
+            console.error(`Error assessing difficulty for chunk ${chunkId}:`, err);
+            return undefined; // Continue even if difficulty assessment fails
+          })
+        : Promise.resolve(undefined);
+      
+      // Generate questions
       try {
         // Try to generate questions via the API
         const questionTexts = await generateQuestions(text);
@@ -126,7 +139,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Using default questions for chunk ${chunkId}`);
       }
       
-      return res.json({ questions });
+      // Wait for difficulty assessment to complete
+      if (assessDifficultyNeeded) {
+        difficulty = await difficultyPromise;
+        if (difficulty !== undefined) {
+          console.log(`Assessed difficulty for chunk ${chunkId}: ${difficulty}`);
+        }
+      }
+      
+      return res.json({ 
+        questions,
+        difficulty
+      });
     } catch (error: any) {
       console.error("Error in question generation route:", error);
       
