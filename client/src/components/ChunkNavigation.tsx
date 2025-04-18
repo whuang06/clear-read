@@ -96,11 +96,11 @@ export function ChunkNavigation() {
                         </svg>
                         {isActive ? "In Progress" : isCompleted ? "Completed" : "Pending"}
                       </span>
-                      {chunk.difficulty !== undefined && (
-                        <span className="inline-flex items-center ml-2 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                          Difficulty: {getDifficultyLabel(chunk.difficulty)}
-                        </span>
-                      )}
+                      <span className="inline-flex items-center ml-2 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        Difficulty: {chunk.difficulty !== undefined 
+                          ? getDifficultyLabel(chunk.difficulty)
+                          : "Unknown"}
+                      </span>
                     </div>
                   </div>
                   <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">

@@ -108,16 +108,20 @@ export function ChunkReader() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Current Passage</h2>
             <div className="flex items-center space-x-2">
-              {activeChunk.difficulty !== undefined && (
-                <>
-                  <span className="text-sm text-gray-500">Difficulty:</span>
+              <>
+                <span className="text-sm text-gray-500">Difficulty:</span>
+                {activeChunk.difficulty !== undefined ? (
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     getDifficultyColor(activeChunk.difficulty)
                   }`}>
                     {getDifficultyLabel(activeChunk.difficulty)}
                   </span>
-                </>
-              )}
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                    Unknown
+                  </span>
+                )}
+              </>
               
               {/* Simplified text indicator */}
               {activeChunk.isSimplified && (

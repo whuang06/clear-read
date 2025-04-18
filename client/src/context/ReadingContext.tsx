@@ -263,39 +263,37 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
   };
 
   // Helper function to load questions for a chunk if they're not already loaded
+  // Also assess difficulty if not already set
   const loadQuestionsForChunk = async (chunkId: number, chunkText: string) => {
-    // Skip if questions are already loaded for this chunk
-    if (session.questions[chunkId] && session.questions[chunkId].length > 0) {
+    // Get the chunk index
+    const chunkIndex = session.chunks.findIndex(c => c.id === chunkId);
+    if (chunkIndex === -1) return;
+    
+    // Determine if we need to load questions and/or assess difficulty
+    const needQuestions = !session.questions[chunkId] || session.questions[chunkId].length === 0;
+    const needDifficulty = session.chunks[chunkIndex].difficulty === undefined;
+    
+    // Skip if neither is needed
+    if (!needQuestions && !needDifficulty) {
       return;
     }
     
-    console.log(`Dynamically loading questions for chunk ${chunkId}`);
+    console.log(`Dynamically loading data for chunk ${chunkId} (questions: ${needQuestions}, difficulty: ${needDifficulty})`);
     try {
-      const questionsResponse = await apiRequest(
+      const response = await apiRequest(
         "POST", 
         "/api/generate-questions", 
-        { chunkId, text: chunkText }
+        { 
+          chunkId, 
+          text: chunkText,
+          assessDifficultyNeeded: needDifficulty 
+        }
       );
       
-      if (!questionsResponse.ok) {
-        console.error("Question generation error for chunk:", chunkId);
+      if (!response.ok) {
+        console.error("API error for chunk:", chunkId);
         // Use default questions if API fails
-        setSession(prev => ({
-          ...prev,
-          questions: {
-            ...prev.questions,
-            [chunkId]: [
-              { id: chunkId * 100, text: "What is the main idea of this passage?", chunkId },
-              { id: chunkId * 100 + 1, text: "What did you find most interesting about this text?", chunkId }
-            ]
-          }
-        }));
-      } else {
-        const questionData = await questionsResponse.json();
-        console.log("Got questions for chunk", chunkId, ":", questionData);
-        
-        if (!questionData.questions || questionData.questions.length === 0) {
-          // If we didn't get any questions, add default ones
+        if (needQuestions) {
           setSession(prev => ({
             ...prev,
             questions: {
@@ -306,29 +304,64 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
               ]
             }
           }));
-        } else {
-          setSession(prev => ({
-            ...prev,
-            questions: {
-              ...prev.questions,
-              [chunkId]: questionData.questions
-            }
-          }));
         }
+      } else {
+        const data = await response.json();
+        
+        // Process both questions and difficulty in one session update
+        setSession(prev => {
+          const updates: Partial<ReadingSession> = { ...prev };
+          
+          // Update questions if needed and available
+          if (needQuestions) {
+            if (!data.questions || data.questions.length === 0) {
+              // If we didn't get any questions, add default ones
+              updates.questions = {
+                ...prev.questions,
+                [chunkId]: [
+                  { id: chunkId * 100, text: "What is the main idea of this passage?", chunkId },
+                  { id: chunkId * 100 + 1, text: "What did you find most interesting about this text?", chunkId }
+                ]
+              };
+            } else {
+              // Use the questions from the API
+              updates.questions = {
+                ...prev.questions,
+                [chunkId]: data.questions
+              };
+            }
+          }
+          
+          // Update difficulty if needed and available
+          if (needDifficulty && data.difficulty !== undefined) {
+            console.log(`Setting difficulty for chunk ${chunkId}: ${data.difficulty}`);
+            const updatedChunks = [...prev.chunks];
+            updatedChunks[chunkIndex] = {
+              ...updatedChunks[chunkIndex],
+              difficulty: data.difficulty
+            };
+            updates.chunks = updatedChunks;
+          }
+          
+          return { ...prev, ...updates };
+        });
       }
     } catch (error) {
-      console.error(`Error loading questions for chunk ${chunkId}:`, error);
-      // Add default questions for this chunk
-      setSession(prev => ({
-        ...prev,
-        questions: {
-          ...prev.questions,
-          [chunkId]: [
-            { id: chunkId * 100, text: "What is the main idea of this passage?", chunkId },
-            { id: chunkId * 100 + 1, text: "What did you find most interesting about this text?", chunkId }
-          ]
-        }
-      }));
+      console.error(`Error loading data for chunk ${chunkId}:`, error);
+      
+      // Add default questions for this chunk if needed
+      if (needQuestions) {
+        setSession(prev => ({
+          ...prev,
+          questions: {
+            ...prev.questions,
+            [chunkId]: [
+              { id: chunkId * 100, text: "What is the main idea of this passage?", chunkId },
+              { id: chunkId * 100 + 1, text: "What did you find most interesting about this text?", chunkId }
+            ]
+          }
+        }));
+      }
     }
   };
 
