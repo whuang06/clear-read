@@ -150,11 +150,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...chunk,
         id: index + 1,
         status: index === 0 ? "active" : "pending",
-        // Ensure that only the first chunk has a difficulty value
+        // First chunk gets its assessed difficulty, others will be assessed later as needed
         difficulty: index === 0 ? chunk.difficulty : undefined,
-        // Add simplification data to all chunks
-        isSimplified: index === 0 ? false : undefined,
-        simplificationLevel: index === 0 ? 0 : undefined
+        // All chunks start with Original (0%) simplification level
+        isSimplified: false,
+        simplificationLevel: 0
       }));
       
       return res.json({ chunks: processedChunks });
@@ -345,7 +345,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isFirstChunk = chunkId === 1;
       
       // Process the chunk with adaptive reader
-      const { simplifiedText, factor } = await adaptChunk(text, rating, isFirstChunk);
+      // If this is the first chunk but not during first processing, we need special handling
+      let simplifiedText, factor;
+      
+      if (isFirstChunk && rating !== undefined) {
+        // First chunk has special adaptation rules:
+        // 1. Horrible answers increase simplification level (factor > 0)
+        // 2. Excellent answers keep original text (factor = 0)
+        if (rating < 0) {
+          // Poor performance -> simplify the text
+          ({ simplifiedText, factor } = await adaptChunk(text, rating, false)); // Treat as regular chunk
+        } else {
+          // Good performance -> keep original text
+          ({ simplifiedText, factor } = await adaptChunk(text, rating, true));  // Treat as first chunk
+        }
+      } else {
+        // Process normally
+        ({ simplifiedText, factor } = await adaptChunk(text, rating, isFirstChunk));
+      }
       
       // If factor is 0, text wasn't simplified
       const isSimplified = factor > 0;

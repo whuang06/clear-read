@@ -494,6 +494,9 @@ export async function adaptChunk(
     // For the first chunk, we don't adapt but still update performance
     if (isFirstChunk) {
       readerState.updatePerformance(rating);
+      // Track that we've processed the first chunk but didn't simplify it
+      readerState.lastSimplified = false;
+      readerState.lastFactor = 0;
       console.log(`First chunk - using original text. Performance: ${readerState.performance.toFixed(2)}`);
       return { 
         simplifiedText: text, 
@@ -540,14 +543,29 @@ try:
     # Determine if we need to simplify based on performance vs. difficulty
     if difficulty is not None and performance < difficulty:
         # Calculate simplification factor based on performance gap
+        # The worse the performance compared to difficulty, the higher the simplification factor
         factor = min(1.0, max(0.0, (difficulty - performance) / difficulty))
         simplified_text = reader.simplify_chunk(text, factor)
         is_simplified = True
-    elif last_simplified:
+    elif last_simplified and performance < 75:
         # Continue simplifying with previous factor if we simplified the last chunk
+        # But only if performance is still not excellent
         simplified_text = reader.simplify_chunk(text, last_factor)
         factor = last_factor
         is_simplified = True
+    elif last_simplified and performance >= 75:
+        # If we previously simplified but now performance is excellent,
+        # decrease the simplification slightly to challenge the reader
+        new_factor = max(0.0, last_factor - 0.2)
+        if new_factor > 0:
+            simplified_text = reader.simplify_chunk(text, new_factor)
+            factor = new_factor
+            is_simplified = True
+        else:
+            # If factor reaches 0, go back to original text
+            simplified_text = text
+            factor = 0.0
+            is_simplified = False
     else:
         # Use original text
         simplified_text = text
