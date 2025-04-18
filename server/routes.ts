@@ -80,20 +80,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Chunk ID is required" });
       }
       
-      const questionTexts = await generateQuestions(text);
+      let questions;
       
-      // Create question objects with IDs
-      const questions = questionTexts.map((q, index) => ({
-        id: (chunkId * 100) + index, // Create unique IDs by combining chunkId and question index
-        text: q,
-        chunkId
-      }));
+      try {
+        // Try to generate questions via the API
+        const questionTexts = await generateQuestions(text);
+        
+        // Check if we got valid questions back
+        if (Array.isArray(questionTexts) && questionTexts.length > 0) {
+          // Create question objects with IDs
+          questions = questionTexts.map((q, index) => ({
+            id: (chunkId * 100) + index, // Create unique IDs by combining chunkId and question index
+            text: q,
+            chunkId
+          }));
+        } else {
+          throw new Error("Generated questions array is empty");
+        }
+      } catch (apiError) {
+        console.warn(`API error or empty results when generating questions for chunk ${chunkId}:`, apiError);
+        
+        // Default questions if the API fails or returns empty results
+        questions = [
+          { id: chunkId * 100, text: "What is the main idea of this passage?", chunkId },
+          { id: chunkId * 100 + 1, text: "What did you find most interesting about this text?", chunkId },
+          { id: chunkId * 100 + 2, text: "How does this information connect to other knowledge you have?", chunkId }
+        ];
+        
+        console.log(`Using default questions for chunk ${chunkId}`);
+      }
       
       return res.json({ questions });
     } catch (error: any) {
-      console.error("Error generating questions:", error);
-      return res.status(500).json({ 
-        message: "Failed to generate questions", 
+      console.error("Error in question generation route:", error);
+      
+      // Even if there's an error, send back default questions to prevent the frontend from hanging
+      const defaultQuestions = [
+        { id: chunkId * 100, text: "What is the main idea of this passage?", chunkId },
+        { id: chunkId * 100 + 1, text: "What did you find most interesting about this text?", chunkId }
+      ];
+      
+      return res.json({ 
+        questions: defaultQuestions,
         error: error.message 
       });
     }
