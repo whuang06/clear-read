@@ -9,23 +9,6 @@ import {
   adaptChunk
 } from "./python";
 
-// Interface for manually-created chunks to ensure TypeScript compatibility
-interface ManualChunk {
-  text: string;
-  start_index: number;
-  end_index: number;
-  token_count: number;
-  sentences: {
-    text: string;
-    start_index: number;
-    end_index: number;
-    token_count: number;
-  }[];
-  difficulty?: number;
-  isSimplified?: boolean;
-  simplificationLevel?: number;
-}
-
 export async function registerRoutes(app: Express): Promise<Server> {
   // Process text route - chunks the input text
   app.post("/api/process-text", async (req, res) => {
@@ -41,92 +24,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // First, try to chunk the text
-      let chunks: ManualChunk[];
+      let chunks;
       try {
-        // Try using the Chonkie API first
-        const apiChunks = await chunkText(text);
-        
-        // Verify that we got valid chunks
-        if (!apiChunks || apiChunks.length === 0) {
-          throw new Error("API returned no chunks");
+        chunks = await chunkText(text);
+        if (!chunks || chunks.length === 0) {
+          return res.status(500).json({ message: "Failed to chunk text. Please try again with different content." });
         }
-        
-        // Cast the API chunks to our ManualChunk type to ensure TypeScript compatibility
-        chunks = apiChunks.map(chunk => ({
-          ...chunk,
-          difficulty: undefined,
-          isSimplified: undefined,
-          simplificationLevel: undefined
-        } as ManualChunk));
       } catch (chunkError: any) {
         console.error("Chunking error:", chunkError);
-        
-        // Fall back to basic chunking by paragraphs if Chonkie API fails
-        console.log("Using fallback chunking method");
-        
-        // Split by paragraphs (double newlines) and ensure there's at least one chunk
-        const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-        
-        // If text has no paragraphs, create a single chunk from the entire text
-        if (paragraphs.length === 0) {
-          paragraphs.push(text.trim());
-        }
-        
-        // If there are too many paragraphs, group them into larger chunks
-        const MAX_CHUNKS = 5;
-        const chunkSize = Math.max(1, Math.ceil(paragraphs.length / MAX_CHUNKS));
-        const groupedChunks: string[] = [];
-        
-        // Group paragraphs into chunks
-        for (let i = 0; i < paragraphs.length; i += chunkSize) {
-          const chunk = paragraphs.slice(i, i + chunkSize).join("\n\n");
-          if (chunk.trim().length > 0) {
-            groupedChunks.push(chunk);
-          }
-        }
-        
-        // Create chunks in the expected format
-        chunks = groupedChunks.map((chunkText, index) => {
-          const startIndex = text.indexOf(chunkText);
-          const endIndex = startIndex + chunkText.length;
-          
-          // Create a basic sentence structure (approximation)
-          const sentences = chunkText.split(/[.!?](?=\s|$)/).filter(s => s.trim().length > 0).map((sentence, sentIndex) => {
-            const sentStartIndex = index === 0 ? chunkText.indexOf(sentence) : 0;
-            const sentEndIndex = sentStartIndex + sentence.length;
-            return {
-              text: sentence.trim(),
-              start_index: sentStartIndex,
-              end_index: sentEndIndex,
-              token_count: Math.ceil(sentence.length / 4)  // Rough approximation
-            };
-          });
-          
-          // Create chunk with explicit type annotation
-          const manualChunk: ManualChunk = {
-            text: chunkText,
-            start_index: startIndex >= 0 ? startIndex : 0,
-            end_index: startIndex >= 0 ? endIndex : chunkText.length,
-            token_count: Math.ceil(chunkText.length / 4),  // Rough approximation
-            sentences: sentences.length > 0 ? sentences : [{ 
-              text: chunkText, 
-              start_index: 0, 
-              end_index: chunkText.length,
-              token_count: Math.ceil(chunkText.length / 4)
-            }],
-            // Add these properties for TypeScript compatibility
-            difficulty: undefined,
-            isSimplified: undefined,
-            simplificationLevel: undefined
-          };
-          
-          return manualChunk;
+        return res.status(500).json({ 
+          message: "Failed to chunk text. There might be an issue with the Chonkie API or the text format.", 
+          error: chunkError.message 
         });
-        
-        if (!chunks || chunks.length === 0) {
-          // If even our fallback failed, return a real error
-          return res.status(400).json({ message: "Failed to process text. Please try different content or a longer text." });
-        }
       }
       
       // Only assess difficulty for the first chunk and mark it with simplification data
@@ -150,11 +59,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...chunk,
         id: index + 1,
         status: index === 0 ? "active" : "pending",
-        // First chunk gets its assessed difficulty, others will be assessed later as needed
+        // Ensure that only the first chunk has a difficulty value
         difficulty: index === 0 ? chunk.difficulty : undefined,
-        // All chunks start with Original (0%) simplification level
-        isSimplified: false,
-        simplificationLevel: 0
+        // Add simplification data to all chunks
+        isSimplified: index === 0 ? false : undefined,
+        simplificationLevel: index === 0 ? 0 : undefined
       }));
       
       return res.json({ chunks: processedChunks });
@@ -288,27 +197,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const questionTexts = questions.map(q => typeof q === 'string' ? q : q.text);
       const responseTexts = responses.map(r => typeof r === 'string' ? r : r.response);
       
-      try {
-        // Sanitize text to avoid command line injection risks
-        const sanitizedText = text.replace(/['"`]/g, " "); // Replace quotes with spaces
-        
-        // Sanitize questions and responses similarly
-        const sanitizedQuestions = questionTexts.map(q => q.replace(/['"`]/g, " "));
-        const sanitizedResponses = responseTexts.map(r => r.replace(/['"`]/g, " "));
-        
-        const feedback = await reviewResponses(sanitizedText, sanitizedQuestions, sanitizedResponses);
-        return res.json({ feedback });
-      } catch (reviewError) {
-        console.error("Error in reviewResponses:", reviewError);
-        
-        // Provide a default feedback instead of failing
-        const defaultFeedback = {
-          review: "We couldn't generate detailed feedback for your responses, but they've been recorded. Your understanding seems good overall.",
-          rating: 50  // Neutral positive rating
-        };
-        
-        return res.json({ feedback: defaultFeedback });
-      }
+      const feedback = await reviewResponses(text, questionTexts, responseTexts);
+      
+      return res.json({ feedback });
     } catch (error: any) {
       console.error("Error reviewing responses:", error);
       return res.status(500).json({ 
@@ -345,24 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isFirstChunk = chunkId === 1;
       
       // Process the chunk with adaptive reader
-      // If this is the first chunk but not during first processing, we need special handling
-      let simplifiedText, factor;
-      
-      if (isFirstChunk && rating !== undefined) {
-        // First chunk has special adaptation rules:
-        // 1. Horrible answers increase simplification level (factor > 0)
-        // 2. Excellent answers keep original text (factor = 0)
-        if (rating < 0) {
-          // Poor performance -> simplify the text
-          ({ simplifiedText, factor } = await adaptChunk(text, rating, false)); // Treat as regular chunk
-        } else {
-          // Good performance -> keep original text
-          ({ simplifiedText, factor } = await adaptChunk(text, rating, true));  // Treat as first chunk
-        }
-      } else {
-        // Process normally
-        ({ simplifiedText, factor } = await adaptChunk(text, rating, isFirstChunk));
-      }
+      const { simplifiedText, factor } = await adaptChunk(text, rating, isFirstChunk);
       
       // If factor is 0, text wasn't simplified
       const isSimplified = factor > 0;

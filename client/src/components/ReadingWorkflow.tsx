@@ -1,6 +1,5 @@
 import { useReading } from "@/context/ReadingContext";
-import { CheckCircle2, Award } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { CheckCircle2 } from "lucide-react";
 
 const steps = [
   { id: "input", name: "Input Text" },
@@ -13,28 +12,8 @@ export function ReadingWorkflow() {
   const { session } = useReading();
   const currentStep = session.status;
   
-  // Calculate reading progress for progress bar
-  const totalChunks = session.chunks.length;
-  const completedChunks = session.chunks.filter(chunk => chunk.status === "completed").length;
-  const activeChunks = session.chunks.filter(chunk => chunk.status === "active").length;
-  
-  // Calculate progress percentage (completed chunks + half credit for active chunks)
-  const progressPercentage = totalChunks > 0 
-    ? Math.min(100, Math.round(((completedChunks + (activeChunks * 0.5)) / totalChunks) * 100)) 
-    : 0;
-  
-  // Calculate average performance score 
-  const feedbackEntries = Object.values(session.feedback);
-  const averagePerformance = feedbackEntries.length > 0
-    ? Math.round(feedbackEntries.reduce((sum, fb) => sum + fb.rating, 0) / feedbackEntries.length)
-    : 0;
-  
-  // Normalize performance score to 0-100 range for display
-  const normalizedPerformance = Math.max(0, Math.min(100, Math.round((averagePerformance + 200) / 4)));
-  
   return (
-    <div className="mb-8 space-y-6">
-      {/* Main workflow steps */}
+    <div className="mb-8">
       <nav aria-label="Progress" className="hidden sm:block">
         <ol role="list" className="flex items-center">
           {steps.map((step, stepIdx) => {
@@ -101,36 +80,6 @@ export function ReadingWorkflow() {
           })}
         </ol>
       </nav>
-      
-      {/* Reading progress section - only visible during reading or completion */}
-      {(currentStep === "reading" || currentStep === "complete") && totalChunks > 0 && (
-        <div className="mt-6 space-y-3">
-          <div className="flex justify-between items-center">
-            <div className="text-sm font-medium">Reading Progress</div>
-            <div className="text-sm font-medium">{progressPercentage}%</div>
-          </div>
-          <Progress value={progressPercentage} className="h-2" />
-          
-          {/* Live performance metrics */}
-          {feedbackEntries.length > 0 && (
-            <div className="flex justify-between items-center mt-4 pt-2 border-t">
-              <div className="flex items-center gap-2">
-                <Award className="h-4 w-4 text-primary-500" />
-                <span className="text-sm font-medium">Performance</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                  normalizedPerformance >= 70 ? 'bg-green-100 text-green-700' :
-                  normalizedPerformance >= 40 ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-red-100 text-red-700'
-                }`}>
-                  {normalizedPerformance}/100
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

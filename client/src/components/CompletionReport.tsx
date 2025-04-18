@@ -143,137 +143,58 @@ export function CompletionReport() {
             )}
           </div>
           
-          {/* Line graph visualization for performance over time */}
+          {/* Chart visualization (simplified for implementation) */}
           <div className="bg-white p-5 rounded-lg border mb-4">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <h3 className="text-lg font-medium text-gray-900">Performance Trend</h3>
-                <BarChart4 className="ml-2 h-5 w-5 text-primary" />
-              </div>
+              <h3 className="text-lg font-medium text-gray-900">Performance Chart</h3>
               <Button variant="ghost" size="sm" onClick={() => setShowDetails(!showDetails)}>
                 {showDetails ? "Hide Details" : "Show Details"}
               </Button>
             </div>
             
-            {/* Line graph representation */}
+            {/* Simple bar chart representation */}
             <div className="relative h-64 w-full mb-8 px-4">
               {/* Grid lines */}
-              <div className="absolute top-0 left-0 right-0 border-t border-gray-200 text-xs text-gray-400 pl-2">100%</div>
-              <div className="absolute top-1/4 left-0 right-0 border-t border-dashed border-gray-200 text-xs text-gray-400 pl-2">75%</div>
-              <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-200 text-xs text-gray-400 pl-2">50%</div>
-              <div className="absolute top-3/4 left-0 right-0 border-t border-dashed border-gray-200 text-xs text-gray-400 pl-2">25%</div>
+              <div className="absolute top-0 left-4 right-4 border-t border-gray-200 text-xs text-gray-400 -ml-2">100%</div>
+              <div className="absolute top-1/4 left-4 right-4 border-t border-gray-200 text-xs text-gray-400 -ml-2">75%</div>
+              <div className="absolute top-1/2 left-4 right-4 border-t border-gray-200 text-xs text-gray-400 -ml-2">50%</div>
+              <div className="absolute top-3/4 left-4 right-4 border-t border-gray-200 text-xs text-gray-400 -ml-2">25%</div>
               
-              {/* Vertical grid lines */}
-              {chartData.length > 1 && (
-                <div className="absolute inset-0 flex justify-between">
-                  {chartData.map((item, index) => (
-                    <div key={`grid-${item.chunkId}`} className="h-full border-l border-dashed border-gray-200" style={{ 
-                      width: `${100 / (chartData.length - 1)}%`,
-                      marginLeft: index === 0 ? 0 : `-${100 / (chartData.length - 1)}%`
-                    }}></div>
-                  ))}
-                </div>
-              )}
-              
-              {chartData.length > 0 ? (
-                <div className="absolute inset-0">
-                  {/* Line graph with connected points */}
-                  <svg className="w-full h-full" viewBox={`0 0 100 100`} preserveAspectRatio="none">
-                    {/* Draw the line connecting all points */}
-                    {chartData.length > 1 && (
-                      <polyline
-                        points={chartData.map((item, index) => 
-                          `${(index / (chartData.length - 1)) * 100},${100 - item.normalizedRating}`
-                        ).join(' ')}
-                        fill="none"
-                        stroke="rgba(59, 130, 246, 0.8)"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    )}
-                    
-                    {/* Draw a gradient area under the line */}
-                    {chartData.length > 1 && (
-                      <polygon
-                        points={`
-                          0,100 
-                          ${chartData.map((item, index) => 
-                            `${(index / (chartData.length - 1)) * 100},${100 - item.normalizedRating}`
-                          ).join(' ')} 
-                          100,100
-                        `}
-                        fill="url(#performance-gradient)"
-                        fillOpacity="0.3"
-                      />
-                    )}
-                    
-                    {/* Draw points for each data point */}
-                    {chartData.map((item, index) => (
-                      <circle 
-                        key={`point-${item.chunkId}`}
-                        cx={`${(index / Math.max(1, chartData.length - 1)) * 100}%`} 
-                        cy={`${100 - item.normalizedRating}%`} 
-                        r="2.5"
-                        fill="white"
-                        stroke={
-                          item.normalizedRating >= 80 ? '#10b981' : 
-                          item.normalizedRating >= 60 ? '#6366f1' : 
-                          item.normalizedRating >= 40 ? '#f59e0b' : '#ef4444'
-                        }
-                        strokeWidth="2"
-                      />
-                    ))}
-                    
-                    {/* Gradient definition for area under the curve */}
-                    <defs>
-                      <linearGradient id="performance-gradient" x1="0" y1="0" x2="0" y2="100%">
-                        <stop offset="0%" stopColor="rgba(59, 130, 246, 0.6)" />
-                        <stop offset="100%" stopColor="rgba(59, 130, 246, 0.1)" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  
-                  {/* Point labels */}
-                  <div className="absolute bottom-0 left-0 right-0 flex justify-between items-end pt-2">
-                    {chartData.map((item, index) => (
-                      <div key={`label-${item.chunkId}`} 
-                        className="flex flex-col items-center text-xs"
-                        style={{
-                          position: 'absolute',
-                          left: `${(index / Math.max(1, chartData.length - 1)) * 100}%`,
-                          bottom: '-30px',
-                          transform: 'translateX(-50%)'
-                        }}
-                      >
-                        <div className="font-medium">#{item.chunkId}</div>
-                        <div className={`text-xs font-medium px-1.5 py-0.5 rounded mt-1 ${
-                          item.normalizedRating >= 80 ? 'bg-green-100 text-green-800' : 
-                          item.normalizedRating >= 60 ? 'bg-blue-100 text-blue-800' : 
-                          item.normalizedRating >= 40 ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {item.normalizedRating}%
+              {/* Bar container */}
+              <div className="absolute bottom-0 left-0 right-0 flex justify-evenly items-end h-full pt-8">
+                {chartData.length > 0 ? (
+                  <>
+                    {chartData.map((item) => (
+                      <div key={item.chunkId} className="flex flex-col items-center" style={{ width: `${100 / Math.max(1, chartData.length)}%` }}>
+                        {/* Using fixed height bar with transform for animation */}
+                        <div className="relative w-full flex justify-center">
+                          <div 
+                            className="absolute bottom-0 w-16 bg-primary rounded-t-md shadow-md" 
+                            style={{ 
+                              height: '160px', // Fixed container height (64% of parent)
+                              transform: `scaleY(${item.normalizedRating / 100})`,
+                              transformOrigin: 'bottom',
+                              backgroundColor: item.normalizedRating >= 80 ? '#10b981' : 
+                                            item.normalizedRating >= 60 ? '#6366f1' : 
+                                            item.normalizedRating >= 40 ? '#f59e0b' : '#ef4444'
+                            }}
+                          />
                         </div>
+                        <div className="text-xs mt-2 font-medium">#{item.chunkId}</div>
+                        <div className="text-xs text-gray-500">{item.normalizedRating}%</div>
                       </div>
                     ))}
+                  </>
+                ) : (
+                  <div className="w-full flex items-center justify-center h-3/4 text-gray-400">
+                    No performance data available
                   </div>
-                </div>
-              ) : (
-                <div className="w-full flex items-center justify-center h-full text-gray-400">
-                  No performance data available
-                </div>
-              )}
+                )}
+              </div>
             </div>
-            <div className="flex justify-between text-sm text-gray-600 mt-8 border-t pt-4">
-              <span className="font-medium flex items-center">
-                <span className="inline-block w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
-                Reading Progress
-              </span>
-              <span className="text-gray-500 italic">
-                {trend === "improving" ? "Improving trend" : 
-                trend === "declining" ? "Declining trend" : "Stable performance"}
-              </span>
+            <div className="flex justify-between text-sm text-gray-600 mt-4 border-t pt-4">
+              <span className="font-medium">First Chunk</span>
+              <span className="font-medium">Last Chunk</span>
             </div>
           </div>
           
