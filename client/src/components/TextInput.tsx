@@ -46,36 +46,56 @@ export function TextInput({ open, onOpenChange }: TextInputProps) {
     setIsLoading(true);
     
     try {
-      await processText(inputText);
+      console.log("TextInput: Starting text processing with length:", inputText.length);
       
-      // After successful processing, update UI and check state
-      console.log("Process text complete, checking session status:", session.status, "with", session.chunks.length, "chunks");
+      // Clear the session first before processing
+      try {
+        await processText(inputText);
+        console.log("TextInput: Successfully called processText API");
+      } catch (processError: any) {
+        console.error("TextInput: Error during processText:", processError);
+        throw processError; // Re-throw to be caught by outer catch
+      }
+      
+      // After calling processText, log the current state to help debugging
+      console.log("TextInput: Process text API call complete, checking session status:", 
+        session.status, "with", session.chunks.length, "chunks");
       
       // For more reliable state checking, use a listener approach with multiple attempts
       let attempts = 0;
-      const maxAttempts = 10;
-      const checkInterval = 500; // ms
+      const maxAttempts = 15; // Increased for more waiting time
+      const checkInterval = 300; // ms - reduced for more frequent checks
       
       const checkSessionState = () => {
         attempts++;
-        console.log(`Check attempt ${attempts}:`, session.status, session.chunks.length);
+        console.log(`TextInput: Check attempt ${attempts}: status=${session.status}, chunks=${session.chunks.length}`);
         
         if (session.status === "reading" && session.chunks.length > 0) {
           // Success! Close the dialog
-          console.log("Text processed successfully, now in reading state with chunks");
+          console.log("TextInput: Text processed successfully, now in reading state with chunks");
           setIsLoading(false);
           onOpenChange(false);
+        } else if (session.status === "input") {
+          // Something went wrong and we're back at input state
+          console.error("TextInput: Processing failed - session reverted to input state");
+          setIsLoading(false);
+          setError("Failed to process the text. There might be an issue with our services.");
+          toast({
+            title: "Processing Failed", 
+            description: "We couldn't process your text. Please try again later.",
+            variant: "destructive"
+          });
         } else if (attempts < maxAttempts) {
           // Try again after a short delay
           setTimeout(checkSessionState, checkInterval);
         } else {
           // Give up after max attempts
-          console.error("Failed to transition to reading state after", attempts, "attempts");
+          console.error("TextInput: Failed to transition to reading state after", attempts, "attempts");
           setIsLoading(false);
-          setError("The text was processed but there was a problem displaying it. Please try again.");
+          setError("The text processing is taking longer than expected. Please try again with shorter text.");
           toast({
-            title: "Display Error",
-            description: "There was a problem displaying your processed text. Please try again.",
+            title: "Processing Timeout",
+            description: "There was a problem processing your text. Please try again with a shorter passage.",
             variant: "destructive",
           });
         }

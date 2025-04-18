@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-import { ReadingSession, Chunk, Question, UserResponse, ReviewFeedback } from "@/types";
-import { useToast } from "@/hooks/use-toast";
+import { createContext, useState, useContext, ReactNode } from "react";
+import { Chunk, Question, UserResponse, ReviewFeedback, ReadingSession, ReadingStatus } from "@/types";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReadingContextType {
   session: ReadingSession;
@@ -12,6 +12,8 @@ interface ReadingContextType {
   setActiveChunkIndex: (index: number) => void;
   resetSession: () => void;
 }
+
+const ReadingContext = createContext<ReadingContextType | undefined>(undefined);
 
 const initialSession: ReadingSession = {
   originalText: "",
@@ -24,14 +26,13 @@ const initialSession: ReadingSession = {
   status: "input"
 };
 
-const ReadingContext = createContext<ReadingContextType | undefined>(undefined);
-
 export function ReadingProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<ReadingSession>(initialSession);
   const { toast } = useToast();
 
   // Reset session to initial state
   const resetSession = () => {
+    console.log("Resetting reading session state");
     setSession(initialSession);
   };
 
@@ -332,7 +333,6 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
                 ]
               };
             } else {
-              // Use the questions from the API
               updates.questions = {
                 ...prev.questions,
                 [chunkId]: data.questions
@@ -342,7 +342,6 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
           
           // Update difficulty if needed and available
           if (needDifficulty && data.difficulty !== undefined) {
-            console.log(`Setting difficulty for chunk ${chunkId}: ${data.difficulty}`);
             const updatedChunks = [...prev.chunks];
             updatedChunks[chunkIndex] = {
               ...updatedChunks[chunkIndex],
@@ -355,9 +354,8 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch (error) {
-      console.error(`Error loading data for chunk ${chunkId}:`, error);
-      
-      // Add default questions for this chunk if needed
+      console.error("Error loading data for chunk:", error);
+      // Add default questions if we couldn't load from API
       if (needQuestions) {
         setSession(prev => ({
           ...prev,
@@ -372,7 +370,7 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
       }
     }
   };
-
+  
   const moveToNextChunk = async () => {
     const nextIndex = session.activeChunkIndex + 1;
     if (nextIndex >= session.chunks.length) return;
@@ -384,7 +382,7 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
     const nextChunk = session.chunks[nextIndex];
     await loadQuestionsForChunk(nextChunk.id, nextChunk.text);
   };
-
+  
   const moveToPreviousChunk = async () => {
     const prevIndex = session.activeChunkIndex - 1;
     if (prevIndex < 0) return;
@@ -396,7 +394,7 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
     const prevChunk = session.chunks[prevIndex];
     await loadQuestionsForChunk(prevChunk.id, prevChunk.text);
   };
-
+  
   const setActiveChunkIndex = async (index: number) => {
     if (index < 0 || index >= session.chunks.length) return;
     
