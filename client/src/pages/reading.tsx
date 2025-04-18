@@ -27,7 +27,9 @@ export default function Reading() {
   // Handle modal close without input
   const handleModalOpenChange = (open: boolean) => {
     setTextInputOpen(open);
-    if (!open && !hasContent) {
+    // Only redirect to home if the user explicitly closed the modal without submitting any content
+    // Don't redirect when the modal is closed after successful text processing
+    if (!open && !hasContent && session.status !== "processing") {
       toast({
         title: "No Content Provided",
         description: "Redirecting to home page.",

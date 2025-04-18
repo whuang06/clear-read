@@ -88,12 +88,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Check if we got valid questions back
         if (Array.isArray(questionTexts) && questionTexts.length > 0) {
-          // Create question objects with IDs
-          questions = questionTexts.map((q, index) => ({
-            id: (chunkId * 100) + index, // Create unique IDs by combining chunkId and question index
-            text: q,
-            chunkId
-          }));
+          // Clean up question texts to remove JSON formatting, backticks, and brackets
+          const cleanedQuestions = questionTexts.map(q => {
+            // Remove any backticks, brackets, and "json" text
+            let cleaned = q.replace(/```json|```|^\[|\]$/g, '').trim();
+            
+            // Remove any quotes at the beginning and end
+            cleaned = cleaned.replace(/^["']|["'],?$/g, '').trim();
+            
+            return cleaned;
+          }).filter(q => q.length > 0); // Remove any empty questions
+          
+          // Use cleaned questions if we have any, otherwise throw
+          if (cleanedQuestions.length > 0) {
+            // Create question objects with IDs
+            questions = cleanedQuestions.map((q, index) => ({
+              id: (chunkId * 100) + index, // Create unique IDs by combining chunkId and question index
+              text: q,
+              chunkId
+            }));
+          } else {
+            throw new Error("No valid questions after cleaning");
+          }
         } else {
           throw new Error("Generated questions array is empty");
         }
@@ -113,6 +129,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ questions });
     } catch (error: any) {
       console.error("Error in question generation route:", error);
+      
+      const { chunkId } = req.body; // Extract chunkId again from request body
       
       // Even if there's an error, send back default questions to prevent the frontend from hanging
       const defaultQuestions = [
