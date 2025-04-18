@@ -30,13 +30,22 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<ReadingSession>(initialSession);
   const { toast } = useToast();
 
+  // Reset session to initial state
+  const resetSession = () => {
+    setSession(initialSession);
+  };
+
   const processText = async (text: string): Promise<void> => {
     try {
-      setSession(prev => ({ 
-        ...prev, 
+      // Clear previous state and set to processing
+      console.log("Starting text processing...");
+      
+      // Just set to processing state with the new text (without old chunks)
+      setSession({ 
+        ...initialSession, 
         originalText: text,
         status: "processing" 
-      }));
+      });
       
       // Call API to process text and get chunks
       const response = await apiRequest("POST", "/api/process-text", { text });
@@ -397,10 +406,6 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
     // Then load questions for the selected chunk if needed
     const selectedChunk = session.chunks[index];
     await loadQuestionsForChunk(selectedChunk.id, selectedChunk.text);
-  };
-
-  const resetSession = () => {
-    setSession(initialSession);
   };
 
   return (
