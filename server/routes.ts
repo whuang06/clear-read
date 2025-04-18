@@ -38,25 +38,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Only assess difficulty for the first chunk
+      // Only assess difficulty for the first chunk and mark it with simplification data
       try {
         if (chunks.length > 0) {
           const firstChunkDifficulty = await assessDifficulty(chunks[0].text);
           chunks[0].difficulty = firstChunkDifficulty;
           console.log(`First chunk difficulty: ${firstChunkDifficulty}`);
+          
+          // Add simplification data to first chunk (0% simplified)
+          chunks[0].isSimplified = false;
+          chunks[0].simplificationLevel = 0;
         }
       } catch (error) {
         console.error(`Failed to assess difficulty for first chunk:`, error);
         // Continue without setting difficulty
       }
       
-      // Add ID and status to each chunk
+      // Add ID, status, and simplified data to each chunk
       const processedChunks = chunks.map((chunk, index) => ({
         ...chunk,
         id: index + 1,
         status: index === 0 ? "active" : "pending",
         // Ensure that only the first chunk has a difficulty value
-        difficulty: index === 0 ? chunk.difficulty : undefined
+        difficulty: index === 0 ? chunk.difficulty : undefined,
+        // Add simplification data to all chunks
+        isSimplified: index === 0 ? false : undefined,
+        simplificationLevel: index === 0 ? 0 : undefined
       }));
       
       return res.json({ chunks: processedChunks });
@@ -225,8 +232,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue with adaptation even if difficulty assessment fails
       }
       
+      // Check if this is the first chunk
+      const isFirstChunk = chunkId === 1;
+      
       // Process the chunk with adaptive reader
-      const { simplifiedText, factor } = await adaptChunk(text, rating);
+      const { simplifiedText, factor } = await adaptChunk(text, rating, isFirstChunk);
       
       // If factor is 0, text wasn't simplified
       const isSimplified = factor > 0;

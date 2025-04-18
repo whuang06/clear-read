@@ -497,11 +497,23 @@ except Exception as e:
 // Adapt chunk using adaptive_reader.py with persistent state
 export async function adaptChunk(
   text: string, 
-  rating: number
+  rating: number,
+  isFirstChunk: boolean = false
 ): Promise<{ simplifiedText: string; factor: number }> {
   try {
     // Get the singleton instance to maintain state between calls
     const readerState = AdaptiveReaderState.getInstance();
+    
+    // For the first chunk, we don't adapt but still update performance
+    if (isFirstChunk) {
+      readerState.updatePerformance(rating);
+      console.log(`First chunk - using original text. Performance: ${readerState.performance.toFixed(2)}`);
+      return { 
+        simplifiedText: text, 
+        factor: 0 // 0% simplification for first chunk
+      };
+    }
+    
     // Update performance with the user's rating from previous chunk
     readerState.updatePerformance(rating);
     console.log(`AdaptiveReader state - Performance: ${readerState.performance.toFixed(2)}, ChunksSeen: ${readerState.chunksSeen}`);

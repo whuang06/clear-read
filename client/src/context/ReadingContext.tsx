@@ -230,20 +230,19 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
           if (adaptResponse.ok) {
             const adaptData = await adaptResponse.json();
             
-            // Update the adapted chunk if it was modified
-            if (adaptData.isSimplified) {
-              setSession(prev => {
-                const updatedChunks = [...prev.chunks];
-                updatedChunks[nextChunkIndex] = {
-                  ...updatedChunks[nextChunkIndex],
-                  text: adaptData.text,
-                  isSimplified: true,
-                  simplificationLevel: adaptData.simplificationLevel
-                };
-                
-                return { ...prev, chunks: updatedChunks };
-              });
-            }
+            // Always update the chunk with difficulty and simplification data
+            setSession(prev => {
+              const updatedChunks = [...prev.chunks];
+              updatedChunks[nextChunkIndex] = {
+                ...updatedChunks[nextChunkIndex],
+                text: adaptData.text,
+                difficulty: adaptData.isSimplified ? adaptData.newDifficulty : adaptData.originalDifficulty,
+                isSimplified: adaptData.isSimplified,
+                simplificationLevel: adaptData.simplificationLevel || 0
+              };
+              
+              return { ...prev, chunks: updatedChunks };
+            });
           } else {
             console.warn("Adaptation API failed, continuing with original text");
           }
