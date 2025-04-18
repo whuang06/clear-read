@@ -6,7 +6,7 @@ import { ReadingSession, ReviewFeedback } from "@/types";
 import { ChevronRight, RefreshCcw, Trophy, BookOpen, BarChart4, PieChart } from "lucide-react";
 
 export function CompletionReport() {
-  const { session, resetSession } = useReading();
+  const { session, resetSession, processText } = useReading();
   const { chunks, feedback, performance } = session;
   const [showDetails, setShowDetails] = useState(false);
   
@@ -34,9 +34,18 @@ export function CompletionReport() {
     return "You seem to be having some difficulty with this text. Try reading it again with our adaptive help.";
   };
   
-  // Handle restart
-  const handleTryAgain = () => {
+  // Handle restart with the same text
+  const handleTryAgain = async () => {
+    const originalText = session.originalText;
     resetSession();
+    
+    // Check if original text exists before proceeding
+    if (originalText && originalText.trim().length > 0) {
+      // Small timeout to ensure state reset is complete
+      setTimeout(async () => {
+        await processText(originalText);
+      }, 50);
+    }
   };
   
   // Calculate performance trend (did they improve over time?)
@@ -63,6 +72,8 @@ export function CompletionReport() {
     rating: f.rating,
     normalizedRating: Math.round(((f.rating + 200) / 400) * 100)
   })).sort((a, b) => a.chunkId - b.chunkId);
+  
+  console.log("Performance chart data:", chartData);
   
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -141,34 +152,39 @@ export function CompletionReport() {
             </div>
             
             {/* Simple bar chart representation */}
-            <div className="relative h-64 flex items-end space-x-4 mb-8 px-4">
-              {chartData.length > 0 ? (
-                <>
-                  {chartData.map((item) => (
-                    <div key={item.chunkId} className="flex-1 flex flex-col items-center">
-                      <div className="absolute top-0 left-0 right-0 border-t border-gray-200 text-xs text-gray-400 -ml-2">100%</div>
-                      <div className="absolute top-1/4 left-0 right-0 border-t border-gray-200 text-xs text-gray-400 -ml-2">75%</div>
-                      <div className="absolute top-1/2 left-0 right-0 border-t border-gray-200 text-xs text-gray-400 -ml-2">50%</div>
-                      <div className="absolute top-3/4 left-0 right-0 border-t border-gray-200 text-xs text-gray-400 -ml-2">25%</div>
-                      <div 
-                        className="w-full min-w-8 max-w-16 rounded-t transition-all duration-500" 
-                        style={{ 
-                          height: `${Math.max(5, item.normalizedRating)}%`,
-                          backgroundColor: item.normalizedRating >= 80 ? '#10b981' : 
-                                       item.normalizedRating >= 60 ? '#6366f1' : 
-                                       item.normalizedRating >= 40 ? '#f59e0b' : '#ef4444'
-                        }}
-                      ></div>
-                      <div className="text-xs mt-2 font-medium">#{item.chunkId}</div>
-                      <div className="text-xs text-gray-500">{item.normalizedRating}%</div>
-                    </div>
-                  ))}
-                </>
-              ) : (
-                <div className="w-full flex items-center justify-center h-40 text-gray-400">
-                  No performance data available
-                </div>
-              )}
+            <div className="relative h-64 w-full mb-8 px-4">
+              {/* Grid lines */}
+              <div className="absolute top-0 left-4 right-4 border-t border-gray-200 text-xs text-gray-400 -ml-2">100%</div>
+              <div className="absolute top-1/4 left-4 right-4 border-t border-gray-200 text-xs text-gray-400 -ml-2">75%</div>
+              <div className="absolute top-1/2 left-4 right-4 border-t border-gray-200 text-xs text-gray-400 -ml-2">50%</div>
+              <div className="absolute top-3/4 left-4 right-4 border-t border-gray-200 text-xs text-gray-400 -ml-2">25%</div>
+              
+              {/* Bar container */}
+              <div className="absolute bottom-0 left-0 right-0 flex justify-evenly items-end h-full">
+                {chartData.length > 0 ? (
+                  <>
+                    {chartData.map((item) => (
+                      <div key={item.chunkId} className="flex flex-col items-center" style={{ width: `${100 / Math.max(1, chartData.length)}%` }}>
+                        <div 
+                          className="w-12 rounded-t shadow-md transition-all duration-500" 
+                          style={{ 
+                            height: `${Math.max(10, item.normalizedRating)}%`,
+                            backgroundColor: item.normalizedRating >= 80 ? '#10b981' : 
+                                        item.normalizedRating >= 60 ? '#6366f1' : 
+                                        item.normalizedRating >= 40 ? '#f59e0b' : '#ef4444'
+                          }}
+                        ></div>
+                        <div className="text-xs mt-2 font-medium">#{item.chunkId}</div>
+                        <div className="text-xs text-gray-500">{item.normalizedRating}%</div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div className="w-full flex items-center justify-center h-3/4 text-gray-400">
+                    No performance data available
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex justify-between text-sm text-gray-600 mt-4 border-t pt-4">
               <span className="font-medium">First Chunk</span>
