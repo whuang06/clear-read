@@ -38,9 +38,14 @@ export function TextInput({ open, onOpenChange }: TextInputProps) {
     
     try {
       await processText(inputText);
-      setIsLoading(false);
-      onOpenChange(false);
+      // Close dialog after successful processing
+      // Small delay to ensure state updates properly
+      setTimeout(() => {
+        setIsLoading(false);
+        onOpenChange(false);
+      }, 500);
     } catch (err: any) {
+      console.error("Error in TextInput handleSubmit:", err);
       setIsLoading(false);
       setError(err.message || "Failed to process your text. Please try again.");
       toast({

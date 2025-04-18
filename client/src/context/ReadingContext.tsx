@@ -60,32 +60,56 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
         throw new Error("No text chunks were generated. Please try with a longer text.");
       }
       
+      console.log("Successfully received chunks:", data.chunks.length);
+      
+      // First update state with chunks before fetching questions to show progress
+      setSession(prev => ({
+        ...prev,
+        chunks: data.chunks,
+        activeChunkIndex: 0
+      }));
+      
       // For each chunk, fetch questions
       const questions: Record<number, Question[]> = {};
+      let questionErrorEncountered = false;
+      
       try {
         for (const chunk of data.chunks) {
-          const questionsResponse = await apiRequest(
-            "POST", 
-            "/api/generate-questions", 
-            { chunkId: chunk.id, text: chunk.text }
-          );
-          
-          if (!questionsResponse.ok) {
-            const errorData = await questionsResponse.json();
-            console.error("Question generation error:", errorData);
-            // Use default questions if API fails
-            questions[chunk.id] = [
-              { id: chunk.id * 100, text: "What is the main idea of this passage?", chunkId: chunk.id },
-              { id: chunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: chunk.id }
-            ];
-            continue;
-          }
-          
-          const questionData = await questionsResponse.json();
-          questions[chunk.id] = questionData.questions;
-          
-          // If we didn't get any questions, add default ones
-          if (!questionData.questions || questionData.questions.length === 0) {
+          try {
+            const questionsResponse = await apiRequest(
+              "POST", 
+              "/api/generate-questions", 
+              { chunkId: chunk.id, text: chunk.text }
+            );
+            
+            if (!questionsResponse.ok) {
+              const errorData = await questionsResponse.json();
+              console.error("Question generation error for chunk", chunk.id, ":", errorData);
+              questionErrorEncountered = true;
+              // Use default questions if API fails
+              questions[chunk.id] = [
+                { id: chunk.id * 100, text: "What is the main idea of this passage?", chunkId: chunk.id },
+                { id: chunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: chunk.id }
+              ];
+              continue;
+            }
+            
+            const questionData = await questionsResponse.json();
+            console.log("Got questions for chunk", chunk.id, ":", questionData);
+            
+            if (!questionData.questions || questionData.questions.length === 0) {
+              // If we didn't get any questions, add default ones
+              questions[chunk.id] = [
+                { id: chunk.id * 100, text: "What is the main idea of this passage?", chunkId: chunk.id },
+                { id: chunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: chunk.id }
+              ];
+            } else {
+              questions[chunk.id] = questionData.questions;
+            }
+          } catch (chunkQuestionError) {
+            console.error("Error fetching questions for chunk", chunk.id, ":", chunkQuestionError);
+            questionErrorEncountered = true;
+            // Add default questions for this chunk
             questions[chunk.id] = [
               { id: chunk.id * 100, text: "What is the main idea of this passage?", chunkId: chunk.id },
               { id: chunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: chunk.id }
@@ -93,7 +117,8 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (questionError) {
-        console.error("Error generating questions:", questionError);
+        console.error("Error in question generation loop:", questionError);
+        questionErrorEncountered = true;
         // Continue with chunks even if questions fail - we'll add default questions
         for (const chunk of data.chunks) {
           if (!questions[chunk.id]) {
@@ -105,13 +130,22 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
         }
       }
       
+      // Final update with questions and reading status
+      console.log("Finalizing with questions for", Object.keys(questions).length, "chunks");
+      
       setSession(prev => ({
         ...prev,
-        chunks: data.chunks,
         questions,
-        activeChunkIndex: 0,
         status: "reading"
       }));
+      
+      if (questionErrorEncountered) {
+        toast({
+          title: "Limited Questions",
+          description: "We encountered some issues generating questions for your text. Basic questions have been provided instead.",
+          variant: "default"
+        });
+      }
     } catch (error: any) {
       console.error("Error processing text:", error);
       toast({
