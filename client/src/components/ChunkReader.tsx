@@ -123,13 +123,16 @@ export function ChunkReader() {
                 )}
               </>
               
-              {/* Simplified text indicator */}
-              {activeChunk.isSimplified && (
-                <div className="ml-2 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-medium inline-flex items-center">
-                  <Zap className="w-4 h-4 mr-1" />
-                  Simplified ({Math.round(activeChunk.simplificationLevel || 0)}%)
-                </div>
-              )}
+              {/* Simplification level indicator - always show */}
+              <div className={`ml-2 ${
+                activeChunk.simplificationLevel ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"
+              } px-2 py-1 rounded text-xs font-medium inline-flex items-center`}>
+                <Zap className="w-4 h-4 mr-1" />
+                {activeChunk.simplificationLevel ? 
+                  `Simplified (${Math.round(activeChunk.simplificationLevel)}%)` : 
+                  "Original Text (0%)"
+                }
+              </div>
             </div>
           </div>
           

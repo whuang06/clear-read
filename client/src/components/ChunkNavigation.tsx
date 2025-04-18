@@ -101,6 +101,18 @@ export function ChunkNavigation() {
                           ? getDifficultyLabel(chunk.difficulty)
                           : "Unknown"}
                       </span>
+                      
+                      {/* Simplification level badge */}
+                      {index === 0 || chunk.simplificationLevel !== undefined ? (
+                        <span className={`inline-flex items-center ml-2 px-2 py-0.5 rounded text-xs font-medium ${
+                          chunk.simplificationLevel ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"
+                        }`}>
+                          {index === 0 || chunk.simplificationLevel === 0 
+                            ? "Original (0%)" 
+                            : `Simplified (${Math.round(chunk.simplificationLevel || 0)}%)`
+                          }
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
