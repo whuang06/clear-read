@@ -57,52 +57,22 @@ export function TextInput({ open, onOpenChange }: TextInputProps) {
         throw processError; // Re-throw to be caught by outer catch
       }
       
-      // After calling processText, log the current state to help debugging
-      console.log("TextInput: Process text API call complete, checking session status:", 
-        session.status, "with", session.chunks.length, "chunks");
+      // After calling processText, close the dialog as the text has been processed
+      // The effect will handle the transition to reading state
+      console.log("TextInput: Process text API call complete. Setting loading to false and continuing");
       
-      // For more reliable state checking, use a listener approach with multiple attempts
-      let attempts = 0;
-      const maxAttempts = 15; // Increased for more waiting time
-      const checkInterval = 300; // ms - reduced for more frequent checks
-      
-      const checkSessionState = () => {
-        attempts++;
-        console.log(`TextInput: Check attempt ${attempts}: status=${session.status}, chunks=${session.chunks.length}`);
-        
+      // Give a short wait to ensure state is updated
+      setTimeout(() => {
         if (session.status === "reading" && session.chunks.length > 0) {
-          // Success! Close the dialog
-          console.log("TextInput: Text processed successfully, now in reading state with chunks");
+          console.log("TextInput: Processing successful, closing dialog");
           setIsLoading(false);
           onOpenChange(false);
-        } else if (session.status === "input") {
-          // Something went wrong and we're back at input state
-          console.error("TextInput: Processing failed - session reverted to input state");
-          setIsLoading(false);
-          setError("Failed to process the text. There might be an issue with our services.");
-          toast({
-            title: "Processing Failed", 
-            description: "We couldn't process your text. Please try again later.",
-            variant: "destructive"
-          });
-        } else if (attempts < maxAttempts) {
-          // Try again after a short delay
-          setTimeout(checkSessionState, checkInterval);
         } else {
-          // Give up after max attempts
-          console.error("TextInput: Failed to transition to reading state after", attempts, "attempts");
-          setIsLoading(false);
-          setError("The text processing is taking longer than expected. Please try again with shorter text.");
-          toast({
-            title: "Processing Timeout",
-            description: "There was a problem processing your text. Please try again with a shorter passage.",
-            variant: "destructive",
-          });
+          console.log("TextInput: Processing appears complete but needs further verification");
+          // State will be checked by the effect 
+          // The state update in ReadingContext will eventually trigger the effect
         }
-      };
-      
-      // Start checking
-      checkSessionState();
+      }, 500);
     } catch (err: any) {
       console.error("Error in TextInput handleSubmit:", err);
       setIsLoading(false);

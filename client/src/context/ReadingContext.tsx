@@ -119,15 +119,18 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
       
       // Update session with chunks and questions for first chunk only
       // Explicitly set the status to reading to ensure proper UI transition
-      setSession(prev => {
-        console.log("Setting final session state from", prev.status, "to reading");
-        return {
-          ...prev,
-          chunks: data.chunks,
-          questions: { [firstChunk.id]: firstChunkQuestions },
-          activeChunkIndex: 0,
-          status: "reading" // This triggers the reading interface to display
-        };
+      console.log("Setting final session state to reading with", data.chunks.length, "chunks");
+      
+      // Use a direct state set rather than a function to avoid potential state closure issues
+      setSession({
+        originalText: text,
+        chunks: data.chunks,
+        questions: { [firstChunk.id]: firstChunkQuestions },
+        activeChunkIndex: 0,
+        responses: {},
+        feedback: {},
+        performance: 0,
+        status: "reading" // This triggers the reading interface to display
       });
       
       if (questionErrorEncountered) {
