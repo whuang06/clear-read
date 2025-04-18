@@ -21,15 +21,22 @@ export default function Reading() {
   const isReading = session.status === "reading";
   const isComplete = session.status === "complete";
   
-  // Show input modal if no content and not currently processing
+  // Handle state transitions and modal visibility
   useEffect(() => {
+    console.log(`Reading page state monitor: status=${session.status}, hasContent=${hasContent}, modal=${textInputOpen}`);
+    
     if (!hasContent && !isProcessing) {
+      // No content and not processing - show input dialog
       setTextInputOpen(true);
     } else if (isReading && textInputOpen) {
-      // If we're in reading state but modal is still open, close it
+      // Successfully transitioned to reading state - close the dialog
+      console.log("Reading page: detected transition to reading state, closing dialog");
       setTextInputOpen(false);
+    } else if (isProcessing) {
+      // Processing is happening - make sure dialog stays open
+      setTextInputOpen(true);
     }
-  }, [hasContent, isProcessing, isReading, textInputOpen]);
+  }, [hasContent, isProcessing, isReading, textInputOpen, session.status, session.chunks.length]);
   
   // Handle modal close without input
   const handleModalOpenChange = (open: boolean) => {

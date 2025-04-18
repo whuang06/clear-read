@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -25,6 +25,15 @@ export function TextInput({ open, onOpenChange }: TextInputProps) {
   const [error, setError] = useState<string | null>(null);
   const { processText, session } = useReading();
   const { toast } = useToast();
+  
+  // Effect to monitor session changes and close dialog when in reading state
+  useEffect(() => {
+    if (isLoading && session.status === "reading" && session.chunks.length > 0) {
+      console.log("Session transition detected via effect - closing dialog");
+      setIsLoading(false);
+      onOpenChange(false);
+    }
+  }, [session.status, session.chunks.length, isLoading, onOpenChange]);
 
   const handleSubmit = async () => {
     if (!inputText.trim()) {
@@ -39,23 +48,41 @@ export function TextInput({ open, onOpenChange }: TextInputProps) {
     try {
       await processText(inputText);
       
-      // After successful processing, update UI
-      setIsLoading(false);
+      // After successful processing, update UI and check state
+      console.log("Process text complete, checking session status:", session.status, "with", session.chunks.length, "chunks");
       
-      // Check if the session is now in reading state and has chunks
-      if (session.status === "reading" && session.chunks.length > 0) {
-        console.log("Text processed successfully, now in reading state with chunks");
-        // Close the dialog
-        onOpenChange(false);
-      } else {
-        console.log("Text processed but not in reading state yet. Status:", session.status);
-        // Wait a bit and check again - sometimes the state update takes time
-        setTimeout(() => {
-          if (session.status === "reading" || session.chunks.length > 0) {
-            onOpenChange(false);
-          }
-        }, 1000);
-      }
+      // For more reliable state checking, use a listener approach with multiple attempts
+      let attempts = 0;
+      const maxAttempts = 10;
+      const checkInterval = 500; // ms
+      
+      const checkSessionState = () => {
+        attempts++;
+        console.log(`Check attempt ${attempts}:`, session.status, session.chunks.length);
+        
+        if (session.status === "reading" && session.chunks.length > 0) {
+          // Success! Close the dialog
+          console.log("Text processed successfully, now in reading state with chunks");
+          setIsLoading(false);
+          onOpenChange(false);
+        } else if (attempts < maxAttempts) {
+          // Try again after a short delay
+          setTimeout(checkSessionState, checkInterval);
+        } else {
+          // Give up after max attempts
+          console.error("Failed to transition to reading state after", attempts, "attempts");
+          setIsLoading(false);
+          setError("The text was processed but there was a problem displaying it. Please try again.");
+          toast({
+            title: "Display Error",
+            description: "There was a problem displaying your processed text. Please try again.",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      // Start checking
+      checkSessionState();
     } catch (err: any) {
       console.error("Error in TextInput handleSubmit:", err);
       setIsLoading(false);
