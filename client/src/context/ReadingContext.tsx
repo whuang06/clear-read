@@ -62,83 +62,60 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
       
       console.log("Successfully received chunks:", data.chunks.length);
       
-      // First update state with chunks before fetching questions to show progress
-      setSession(prev => ({
-        ...prev,
-        chunks: data.chunks,
-        activeChunkIndex: 0
-      }));
-      
-      // For each chunk, fetch questions
-      const questions: Record<number, Question[]> = {};
+      // Only fetch questions for the first chunk immediately
+      // Other questions will be loaded on-demand when the user navigates to each chunk
+      const firstChunk = data.chunks[0];
+      let firstChunkQuestions: Question[] = [];
       let questionErrorEncountered = false;
       
       try {
-        for (const chunk of data.chunks) {
-          try {
-            const questionsResponse = await apiRequest(
-              "POST", 
-              "/api/generate-questions", 
-              { chunkId: chunk.id, text: chunk.text }
-            );
-            
-            if (!questionsResponse.ok) {
-              const errorData = await questionsResponse.json();
-              console.error("Question generation error for chunk", chunk.id, ":", errorData);
-              questionErrorEncountered = true;
-              // Use default questions if API fails
-              questions[chunk.id] = [
-                { id: chunk.id * 100, text: "What is the main idea of this passage?", chunkId: chunk.id },
-                { id: chunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: chunk.id }
-              ];
-              continue;
-            }
-            
-            const questionData = await questionsResponse.json();
-            console.log("Got questions for chunk", chunk.id, ":", questionData);
-            
-            if (!questionData.questions || questionData.questions.length === 0) {
-              // If we didn't get any questions, add default ones
-              questions[chunk.id] = [
-                { id: chunk.id * 100, text: "What is the main idea of this passage?", chunkId: chunk.id },
-                { id: chunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: chunk.id }
-              ];
-            } else {
-              questions[chunk.id] = questionData.questions;
-            }
-          } catch (chunkQuestionError) {
-            console.error("Error fetching questions for chunk", chunk.id, ":", chunkQuestionError);
-            questionErrorEncountered = true;
-            // Add default questions for this chunk
-            questions[chunk.id] = [
-              { id: chunk.id * 100, text: "What is the main idea of this passage?", chunkId: chunk.id },
-              { id: chunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: chunk.id }
+        const questionsResponse = await apiRequest(
+          "POST", 
+          "/api/generate-questions", 
+          { chunkId: firstChunk.id, text: firstChunk.text }
+        );
+        
+        if (!questionsResponse.ok) {
+          console.error("Question generation error for first chunk:", firstChunk.id);
+          questionErrorEncountered = true;
+          // Use default questions if API fails
+          firstChunkQuestions = [
+            { id: firstChunk.id * 100, text: "What is the main idea of this passage?", chunkId: firstChunk.id },
+            { id: firstChunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: firstChunk.id }
+          ];
+        } else {
+          const questionData = await questionsResponse.json();
+          console.log("Got questions for first chunk:", questionData);
+          
+          if (!questionData.questions || questionData.questions.length === 0) {
+            // If we didn't get any questions, add default ones
+            firstChunkQuestions = [
+              { id: firstChunk.id * 100, text: "What is the main idea of this passage?", chunkId: firstChunk.id },
+              { id: firstChunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: firstChunk.id }
             ];
+          } else {
+            firstChunkQuestions = questionData.questions;
           }
         }
-      } catch (questionError) {
-        console.error("Error in question generation loop:", questionError);
+      } catch (error) {
+        console.error("Error fetching questions for first chunk:", error);
         questionErrorEncountered = true;
-        // Continue with chunks even if questions fail - we'll add default questions
-        for (const chunk of data.chunks) {
-          if (!questions[chunk.id]) {
-            questions[chunk.id] = [
-              { id: chunk.id * 100, text: "What is the main idea of this passage?", chunkId: chunk.id },
-              { id: chunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: chunk.id }
-            ];
-          }
-        }
+        // Add default questions for this chunk
+        firstChunkQuestions = [
+          { id: firstChunk.id * 100, text: "What is the main idea of this passage?", chunkId: firstChunk.id },
+          { id: firstChunk.id * 100 + 1, text: "What did you find most interesting about this text?", chunkId: firstChunk.id }
+        ];
       }
       
-      // Final update with questions and reading status
-      console.log("Finalizing with questions for", Object.keys(questions).length, "chunks");
-      
+      // Update session with chunks and questions for first chunk only
       // Explicitly set the status to reading to ensure proper UI transition
       setSession(prev => {
         console.log("Setting final session state from", prev.status, "to reading");
         return {
           ...prev,
-          questions,
+          chunks: data.chunks,
+          questions: { [firstChunk.id]: firstChunkQuestions },
+          activeChunkIndex: 0,
           status: "reading" // This triggers the reading interface to display
         };
       });
@@ -285,29 +262,109 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const moveToNextChunk = () => {
-    setSession(prev => {
-      const nextIndex = prev.activeChunkIndex + 1;
-      if (nextIndex >= prev.chunks.length) return prev;
+  // Helper function to load questions for a chunk if they're not already loaded
+  const loadQuestionsForChunk = async (chunkId: number, chunkText: string) => {
+    // Skip if questions are already loaded for this chunk
+    if (session.questions[chunkId] && session.questions[chunkId].length > 0) {
+      return;
+    }
+    
+    console.log(`Dynamically loading questions for chunk ${chunkId}`);
+    try {
+      const questionsResponse = await apiRequest(
+        "POST", 
+        "/api/generate-questions", 
+        { chunkId, text: chunkText }
+      );
       
-      return { ...prev, activeChunkIndex: nextIndex };
-    });
+      if (!questionsResponse.ok) {
+        console.error("Question generation error for chunk:", chunkId);
+        // Use default questions if API fails
+        setSession(prev => ({
+          ...prev,
+          questions: {
+            ...prev.questions,
+            [chunkId]: [
+              { id: chunkId * 100, text: "What is the main idea of this passage?", chunkId },
+              { id: chunkId * 100 + 1, text: "What did you find most interesting about this text?", chunkId }
+            ]
+          }
+        }));
+      } else {
+        const questionData = await questionsResponse.json();
+        console.log("Got questions for chunk", chunkId, ":", questionData);
+        
+        if (!questionData.questions || questionData.questions.length === 0) {
+          // If we didn't get any questions, add default ones
+          setSession(prev => ({
+            ...prev,
+            questions: {
+              ...prev.questions,
+              [chunkId]: [
+                { id: chunkId * 100, text: "What is the main idea of this passage?", chunkId },
+                { id: chunkId * 100 + 1, text: "What did you find most interesting about this text?", chunkId }
+              ]
+            }
+          }));
+        } else {
+          setSession(prev => ({
+            ...prev,
+            questions: {
+              ...prev.questions,
+              [chunkId]: questionData.questions
+            }
+          }));
+        }
+      }
+    } catch (error) {
+      console.error(`Error loading questions for chunk ${chunkId}:`, error);
+      // Add default questions for this chunk
+      setSession(prev => ({
+        ...prev,
+        questions: {
+          ...prev.questions,
+          [chunkId]: [
+            { id: chunkId * 100, text: "What is the main idea of this passage?", chunkId },
+            { id: chunkId * 100 + 1, text: "What did you find most interesting about this text?", chunkId }
+          ]
+        }
+      }));
+    }
   };
 
-  const moveToPreviousChunk = () => {
-    setSession(prev => {
-      const prevIndex = prev.activeChunkIndex - 1;
-      if (prevIndex < 0) return prev;
-      
-      return { ...prev, activeChunkIndex: prevIndex };
-    });
+  const moveToNextChunk = async () => {
+    const nextIndex = session.activeChunkIndex + 1;
+    if (nextIndex >= session.chunks.length) return;
+    
+    // Set the active index first for immediate UI feedback
+    setSession(prev => ({ ...prev, activeChunkIndex: nextIndex }));
+    
+    // Then load questions for the next chunk if needed
+    const nextChunk = session.chunks[nextIndex];
+    await loadQuestionsForChunk(nextChunk.id, nextChunk.text);
   };
 
-  const setActiveChunkIndex = (index: number) => {
-    setSession(prev => {
-      if (index < 0 || index >= prev.chunks.length) return prev;
-      return { ...prev, activeChunkIndex: index };
-    });
+  const moveToPreviousChunk = async () => {
+    const prevIndex = session.activeChunkIndex - 1;
+    if (prevIndex < 0) return;
+    
+    // Set the active index first for immediate UI feedback
+    setSession(prev => ({ ...prev, activeChunkIndex: prevIndex }));
+    
+    // Then load questions for the previous chunk if needed
+    const prevChunk = session.chunks[prevIndex];
+    await loadQuestionsForChunk(prevChunk.id, prevChunk.text);
+  };
+
+  const setActiveChunkIndex = async (index: number) => {
+    if (index < 0 || index >= session.chunks.length) return;
+    
+    // Set the active index first for immediate UI feedback
+    setSession(prev => ({ ...prev, activeChunkIndex: index }));
+    
+    // Then load questions for the selected chunk if needed
+    const selectedChunk = session.chunks[index];
+    await loadQuestionsForChunk(selectedChunk.id, selectedChunk.text);
   };
 
   const resetSession = () => {

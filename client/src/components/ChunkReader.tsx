@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, ChevronRight, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Zap, Loader2 } from "lucide-react";
 import { useReading } from "@/context/ReadingContext";
 import { FeedbackPanel } from "./FeedbackPanel";
 import { Question, UserResponse, Chunk } from "@/types";
@@ -19,11 +19,25 @@ export function ChunkReader() {
   const activeChunk = chunks[activeChunkIndex];
   const activeQuestions = questions[activeChunk?.id] || [];
   const activeFeedback = feedback[activeChunk?.id];
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   
   // Initialize responses when chunk changes
   useEffect(() => {
-    if (activeChunk && activeQuestions && activeQuestions.length > 0) {
-      const chunkId = activeChunk.id;
+    if (!activeChunk) return;
+    
+    const chunkId = activeChunk.id;
+    
+    // Check if questions need to be loaded for this chunk
+    const existingQuestions = questions[chunkId];
+    if (!existingQuestions || existingQuestions.length === 0) {
+      // This will be handled by the dynamic question loading in ReadingContext
+      setIsLoadingQuestions(true);
+    } else {
+      setIsLoadingQuestions(false);
+    }
+    
+    // Initialize responses 
+    if (activeQuestions.length > 0) {
       const existingResponses = responses[chunkId] || [];
       
       if (existingResponses.length > 0) {
@@ -37,7 +51,14 @@ export function ChunkReader() {
         setShowFeedback(false);
       }
     }
-  }, [activeChunk?.id, activeQuestions, responses, feedback]);
+  }, [activeChunk?.id, activeQuestions, responses, feedback, questions]);
+  
+  // Update loading state when questions change
+  useEffect(() => {
+    if (activeChunk && questions[activeChunk.id]?.length > 0) {
+      setIsLoadingQuestions(false);
+    }
+  }, [activeChunk, questions]);
 
   if (!activeChunk) return <div>No active chunk to display</div>;
 
@@ -142,38 +163,53 @@ export function ChunkReader() {
         <div className="p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Comprehension Questions</h2>
           
-          <div className="space-y-6">
-            {activeQuestions.map((question, index) => (
-              <div key={question.id} className="border border-gray-200 rounded-md p-4">
-                <h3 className="text-base font-medium text-gray-900 mb-2">
-                  {index + 1}. {question.text}
-                </h3>
-                <div className="mb-4">
-                  <Textarea 
-                    rows={3}
-                    placeholder="Type your answer here..."
-                    value={userResponses.find(r => r.questionId === question.id)?.text || ""}
-                    onChange={(e) => handleResponseChange(question.id, e.target.value)}
-                    disabled={showFeedback}
-                    className="shadow-sm block w-full focus:ring-primary-500 focus:border-primary-500 sm:text-sm border border-gray-300 rounded-md"
-                  />
+          {isLoadingQuestions ? (
+            <div className="py-8 flex flex-col items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+              <p className="text-sm text-muted-foreground">Generating questions based on your performance...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {activeQuestions.length === 0 ? (
+                <div className="border border-dashed border-gray-200 rounded-md p-6 text-center">
+                  <p className="text-muted-foreground">No questions available for this chunk yet.</p>
                 </div>
-              </div>
-            ))}
-            
-            <div className="flex justify-end space-x-3 mt-6">
-              {!showFeedback ? (
-                <Button onClick={handleSubmitAnswers}>
-                  Submit Answers
-                </Button>
               ) : (
-                <Button onClick={moveToNextChunk}>
-                  Continue to Next Chunk
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
+                <>
+                  {activeQuestions.map((question, index) => (
+                    <div key={question.id} className="border border-gray-200 rounded-md p-4">
+                      <h3 className="text-base font-medium text-gray-900 mb-2">
+                        {index + 1}. {question.text}
+                      </h3>
+                      <div className="mb-4">
+                        <Textarea 
+                          rows={3}
+                          placeholder="Type your answer here..."
+                          value={userResponses.find(r => r.questionId === question.id)?.text || ""}
+                          onChange={(e) => handleResponseChange(question.id, e.target.value)}
+                          disabled={showFeedback}
+                          className="shadow-sm block w-full focus:ring-primary-500 focus:border-primary-500 sm:text-sm border border-gray-300 rounded-md"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <div className="flex justify-end space-x-3 mt-6">
+                    {!showFeedback ? (
+                      <Button onClick={handleSubmitAnswers} disabled={activeQuestions.length === 0}>
+                        Submit Answers
+                      </Button>
+                    ) : (
+                      <Button onClick={moveToNextChunk}>
+                        Continue to Next Chunk
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </>
               )}
             </div>
-          </div>
+          )}
         </div>
       </div>
       

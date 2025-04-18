@@ -189,15 +189,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      console.log(`Adaptive reader processing chunk ${chunkId} with user performance rating: ${rating}`);
+      
+      // Get difficulty of original chunk first to record it
+      let originalDifficulty;
+      try {
+        originalDifficulty = await assessDifficulty(text);
+        console.log(`Original chunk difficulty: ${originalDifficulty}`);
+      } catch (difficultyError) {
+        console.error("Error assessing original difficulty:", difficultyError);
+        // Continue with adaptation even if difficulty assessment fails
+      }
+      
+      // Process the chunk with adaptive reader
       const { simplifiedText, factor } = await adaptChunk(text, rating);
       
       // If factor is 0, text wasn't simplified
       const isSimplified = factor > 0;
       
+      // Assess difficulty of simplified text if it was changed
+      let newDifficulty = originalDifficulty;
+      if (isSimplified && simplifiedText !== text) {
+        try {
+          newDifficulty = await assessDifficulty(simplifiedText);
+          console.log(`Simplified chunk difficulty: ${newDifficulty} (reduction: ${
+            originalDifficulty ? Math.round((originalDifficulty - newDifficulty) / originalDifficulty * 100) : "unknown"
+          }%)`);
+        } catch (newDifficultyError) {
+          console.error("Error assessing simplified difficulty:", newDifficultyError);
+          // Continue even if new difficulty assessment fails
+        }
+      }
+      
       return res.json({
         text: isSimplified ? simplifiedText : text,
         isSimplified,
-        simplificationLevel: Math.round(factor * 100)
+        simplificationLevel: Math.round(factor * 100),
+        originalDifficulty,
+        newDifficulty
       });
     } catch (error: any) {
       console.error("Error adapting chunk:", error);

@@ -4,6 +4,38 @@ import fs from "fs";
 import path from "path";
 import { Chunk, Sentence } from "@/types";
 
+// Store adaptive reader state between calls
+// Using a singleton to persist across requests
+class AdaptiveReaderState {
+  private static instance: AdaptiveReaderState;
+  public performance: number = 0.0;
+  public chunksSeen: number = 0;
+  public lastSimplified: boolean = false;
+  public lastFactor: number = 0.0;
+  
+  private constructor() {}
+  
+  public static getInstance(): AdaptiveReaderState {
+    if (!AdaptiveReaderState.instance) {
+      AdaptiveReaderState.instance = new AdaptiveReaderState();
+    }
+    return AdaptiveReaderState.instance;
+  }
+  
+  public updatePerformance(rating: number): void {
+    this.chunksSeen += 1;
+    // Calculate running average
+    this.performance = ((this.performance * (this.chunksSeen - 1)) + rating) / this.chunksSeen;
+  }
+  
+  public reset(): void {
+    this.performance = 0.0;
+    this.chunksSeen = 0;
+    this.lastSimplified = false;
+    this.lastFactor = 0.0;
+  }
+}
+
 const execPromise = promisify(exec);
 
 // Path to Python scripts
@@ -448,12 +480,18 @@ except Exception as e:
   }
 }
 
-// Adapt chunk using adaptive_reader.py
+// Adapt chunk using adaptive_reader.py with persistent state
 export async function adaptChunk(
   text: string, 
   rating: number
 ): Promise<{ simplifiedText: string; factor: number }> {
   try {
+    // Get the singleton instance to maintain state between calls
+    const readerState = AdaptiveReaderState.getInstance();
+    // Update performance with the user's rating from previous chunk
+    readerState.updatePerformance(rating);
+    console.log(`AdaptiveReader state - Performance: ${readerState.performance.toFixed(2)}, ChunksSeen: ${readerState.chunksSeen}`);
+    
     // Create a temporary script to call the adaptive reader
     const tempScriptPath = path.join(SCRIPTS_DIR, "temp_adapter.py");
     const scriptContent = `
@@ -468,22 +506,48 @@ try:
     sys.path.insert(0, script_dir)
     
     from adaptive_reader import AdaptiveReader
+    from difficulty_assessor import rate_chunk_difficulty
 
     # Parse arguments from the file
     with open(sys.argv[1], 'r') as f:
         args = json.loads(f.read())
     text = args.get("text", "")
     rating = args.get("rating", 0)
+    performance = args.get("performance", 0)
+    last_simplified = args.get("last_simplified", False)
+    last_factor = args.get("last_factor", 0.0)
 
-    # Initialize adaptive reader and process chunk
-    reader = AdaptiveReader()
-    simplified_text = reader.process_next_chunk(text, rating)
-    factor = reader.last_factor
-
-    # Output JSON
+    # Create adaptive reader with persisted state
+    reader = AdaptiveReader(performance)
+    reader.last_simplified = last_simplified
+    reader.last_factor = last_factor
+    
+    # Assess difficulty of the current chunk
+    difficulty = rate_chunk_difficulty(text)
+    
+    # Determine if we need to simplify based on performance vs. difficulty
+    if difficulty is not None and performance < difficulty:
+        # Calculate simplification factor based on performance gap
+        factor = min(1.0, max(0.0, (difficulty - performance) / difficulty))
+        simplified_text = reader.simplify_chunk(text, factor)
+        is_simplified = True
+    elif last_simplified:
+        # Continue simplifying with previous factor if we simplified the last chunk
+        simplified_text = reader.simplify_chunk(text, last_factor)
+        factor = last_factor
+        is_simplified = True
+    else:
+        # Use original text
+        simplified_text = text
+        factor = 0.0
+        is_simplified = False
+    
+    # Output JSON with results
     result = {
         "simplified_text": simplified_text,
-        "factor": factor
+        "factor": factor,
+        "is_simplified": is_simplified,
+        "difficulty": difficulty
     }
     print(json.dumps(result))
 except Exception as e:
@@ -498,8 +562,14 @@ except Exception as e:
     fs.writeFileSync(tempScriptPath, scriptContent);
 
     try {
-      // Execute the script
-      const stdout = await execPythonScript(tempScriptPath, { text, rating });
+      // Execute the script with current state
+      const stdout = await execPythonScript(tempScriptPath, { 
+        text, 
+        rating,
+        performance: readerState.performance,
+        last_simplified: readerState.lastSimplified,
+        last_factor: readerState.lastFactor
+      });
       
       // Parse the result
       try {
@@ -515,6 +585,12 @@ except Exception as e:
             factor: 0
           };
         }
+        
+        // Update our persistent state with results
+        readerState.lastSimplified = parsedOutput.is_simplified;
+        readerState.lastFactor = parsedOutput.factor;
+        
+        console.log(`Chunk difficulty: ${parsedOutput.difficulty}, Performance: ${readerState.performance}, Simplification: ${parsedOutput.is_simplified ? 'yes' : 'no'} (factor: ${parsedOutput.factor.toFixed(2)})`);
         
         return {
           simplifiedText: parsedOutput.simplified_text,
