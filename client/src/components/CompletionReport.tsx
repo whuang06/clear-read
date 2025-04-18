@@ -36,15 +36,15 @@ export function CompletionReport() {
   
   // Handle restart with the same text
   const handleTryAgain = async () => {
-    // Save the original text
+    // Reset session while preserving the original text
     const originalText = session.originalText;
     
-    // Reset session
-    resetSession();
+    // First reset preserving the text
+    resetSession(true);
     
-    // Process the text after a small delay to ensure state is reset
+    // Then process the text with a small delay to ensure state is updated
     setTimeout(async () => {
-      console.log("Try Again: Processing text:", originalText.substring(0, 50) + "...");
+      console.log("Try Again: Processing preserved text:", originalText.substring(0, 50) + "...");
       await processText(originalText);
     }, 100);
   };
@@ -231,7 +231,7 @@ export function CompletionReport() {
             </Button>
           )}
           
-          <Button className="ml-auto flex items-center" onClick={resetSession}>
+          <Button className="ml-auto flex items-center" onClick={() => resetSession(false)}>
             Start New Text
             <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
