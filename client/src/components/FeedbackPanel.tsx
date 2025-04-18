@@ -10,7 +10,10 @@ interface FeedbackPanelProps {
 
 export function FeedbackPanel({ feedback, onContinue }: FeedbackPanelProps) {
   const { session } = useReading();
-  const { performance } = session;
+  const { performance, chunks, activeChunkIndex } = session;
+  
+  // Check if this is the last chunk
+  const isLastChunk = activeChunkIndex === chunks.length - 1;
   
   // Convert rating from -200 to 200 scale to 0 to 100 scale
   const normalizedRating = ((feedback.rating + 200) / 400) * 100;
@@ -79,9 +82,22 @@ export function FeedbackPanel({ feedback, onContinue }: FeedbackPanelProps) {
             <PlusCircle className="mr-2 h-4 w-4" />
             Additional Resources
           </Button>
-          <Button onClick={onContinue} className="flex items-center">
-            Continue to Next Chunk
-            <ChevronRight className="ml-2 h-4 w-4" />
+          <Button 
+            onClick={onContinue} 
+            className="flex items-center"
+            variant={isLastChunk ? "default" : "default"}
+          >
+            {isLastChunk ? (
+              <>
+                Finish Reading
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </>
+            ) : (
+              <>
+                Continue to Next Chunk
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </>
+            )}
           </Button>
         </div>
       </div>

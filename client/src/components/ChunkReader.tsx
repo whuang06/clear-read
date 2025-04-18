@@ -205,8 +205,17 @@ export function ChunkReader() {
                       </Button>
                     ) : (
                       <Button onClick={moveToNextChunk}>
-                        Continue to Next Chunk
-                        <ChevronRight className="ml-2 h-4 w-4" />
+                        {activeChunkIndex === chunks.length - 1 ? (
+                          <>
+                            Finish Reading
+                            <ChevronRight className="ml-2 h-4 w-4" />
+                          </>
+                        ) : (
+                          <>
+                            Continue to Next Chunk
+                            <ChevronRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
                       </Button>
                     )}
                   </div>

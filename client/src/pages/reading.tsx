@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { ReadingWorkflow } from "@/components/ReadingWorkflow";
 import { ChunkNavigation } from "@/components/ChunkNavigation";
 import { ChunkReader } from "@/components/ChunkReader";
+import { CompletionReport } from "@/components/CompletionReport";
 import { useReading } from "@/context/ReadingContext";
 import { TextInput } from "@/components/TextInput";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +19,7 @@ export default function Reading() {
   const hasContent = session.chunks.length > 0;
   const isProcessing = session.status === "processing";
   const isReading = session.status === "reading";
+  const isComplete = session.status === "complete";
   
   // Show input modal if no content and not currently processing
   useEffect(() => {
@@ -62,7 +64,13 @@ export default function Reading() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <ReadingWorkflow />
         
-        {hasContent && (
+        {isComplete ? (
+          // Show completion report when reading is complete
+          <div className="mt-6">
+            <CompletionReport />
+          </div>
+        ) : hasContent && (
+          // Show reading interface when reading is in progress
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <ChunkNavigation />
             <ChunkReader />
