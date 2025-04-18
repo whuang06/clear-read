@@ -19,7 +19,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Text is required" });
       }
       
-      const chunks = await chunkText(text);
+      if (text.trim().length === 0) {
+        return res.status(400).json({ message: "Text cannot be empty" });
+      }
+      
+      // First, try to chunk the text
+      let chunks;
+      try {
+        chunks = await chunkText(text);
+        if (!chunks || chunks.length === 0) {
+          return res.status(500).json({ message: "Failed to chunk text. Please try again with different content." });
+        }
+      } catch (chunkError: any) {
+        console.error("Chunking error:", chunkError);
+        return res.status(500).json({ 
+          message: "Failed to chunk text. There might be an issue with the Chonkie API or the text format.", 
+          error: chunkError.message 
+        });
+      }
       
       // Assess difficulty for each chunk
       for (let i = 0; i < chunks.length; i++) {
@@ -28,7 +45,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           chunks[i].difficulty = difficulty;
         } catch (error) {
           console.error(`Failed to assess difficulty for chunk ${i}:`, error);
-          // Continue processing other chunks even if one fails
+          // Set a default difficulty value
+          chunks[i].difficulty = 1000; // Medium difficulty as fallback
         }
       }
       
@@ -43,7 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error processing text:", error);
       return res.status(500).json({ 
-        message: "Failed to process text", 
+        message: "Failed to process your text. Please try again with different content.", 
         error: error.message 
       });
     }

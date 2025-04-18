@@ -39,6 +39,11 @@ import json
 import sys
 import os
 import traceback
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("chunker")
 
 try:
     # Ensure the current directory is in the Python path
@@ -50,9 +55,23 @@ try:
     # Parse arguments
     args = json.loads(sys.argv[1])
     text = args.get("text", "")
+    
+    if not text or len(text.strip()) == 0:
+        raise ValueError("Text cannot be empty")
+    
+    logger.info(f"Processing text of length: {len(text)}")
+    
+    # Process using chunker with better error handling
+    try:
+        chunks = chunk_text(text)
+        logger.info(f"Successfully generated {len(chunks)} chunks")
+    except Exception as chunk_error:
+        logger.error(f"Chunking error: {chunk_error}")
+        raise ValueError(f"Failed to chunk text: {str(chunk_error)}")
 
-    # Process using chunker
-    chunks = chunk_text(text)
+    # Validate we actually got chunks
+    if not chunks or len(chunks) == 0:
+        raise ValueError("No chunks produced from the input text")
 
     # Convert to format needed by JavaScript
     result = []
@@ -77,9 +96,12 @@ try:
     # Output JSON
     print(json.dumps(result))
 except Exception as e:
+    error_type = type(e).__name__
+    error_msg = str(e)
+    traceback_str = traceback.format_exc()
     print(json.dumps({
-        "error": str(e),
-        "traceback": traceback.format_exc()
+        "error": f"{error_type}: {error_msg}",
+        "traceback": traceback_str
     }))
     sys.exit(1)
 `;
@@ -96,10 +118,21 @@ except Exception as e:
         const parsedOutput = JSON.parse(stdout);
         
         // Check if we received an error message
-        if (parsedOutput.error) {
+        if (parsedOutput && typeof parsedOutput === 'object' && parsedOutput.error) {
           console.error("Python error:", parsedOutput.error);
           console.error("Traceback:", parsedOutput.traceback);
+          
+          // Check for specific API errors
+          if (parsedOutput.error.includes('Request to') && parsedOutput.error.includes('failed')) {
+            throw new Error("Failed to connect to the Chonkie API. Please check your API key or try again later.");
+          }
+          
           throw new Error(parsedOutput.error);
+        }
+        
+        // Check if we got an array of chunks
+        if (!Array.isArray(parsedOutput)) {
+          throw new Error("Invalid response format from Python: expected array of chunks");
         }
         
         const chunks: Chunk[] = parsedOutput.map((chunk: any, index: number) => ({
@@ -112,7 +145,12 @@ except Exception as e:
       } catch (parseError) {
         console.error("Error parsing Python output:", parseError);
         console.error("Raw output:", stdout);
-        throw parseError;
+        
+        if (stdout.includes("API_KEY") && stdout.includes("CHONKIE")) {
+          throw new Error("Chonkie API authentication failed. Please check your API key.");
+        }
+        
+        throw new Error("Failed to parse chunker output: " + (parseError instanceof Error ? parseError.message : String(parseError)));
       }
     } finally {
       // Clean up - using try/catch to prevent unlink errors
