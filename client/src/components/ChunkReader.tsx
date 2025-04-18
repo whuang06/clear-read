@@ -107,9 +107,10 @@ export function ChunkReader() {
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Current Passage</h2>
-            <div className="flex items-center space-x-2">
-              <>
-                <span className="text-sm text-gray-500">Difficulty:</span>
+            <div className="flex items-center space-x-4">
+              {/* Difficulty label with color coding */}
+              <div className="flex items-center">
+                <span className="text-sm font-medium text-gray-700 mr-2">Difficulty:</span>
                 {activeChunk.difficulty !== undefined ? (
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     getDifficultyColor(activeChunk.difficulty)
@@ -121,17 +122,23 @@ export function ChunkReader() {
                     Unknown
                   </span>
                 )}
-              </>
+              </div>
               
-              {/* Simplification level indicator - always show */}
-              <div className={`ml-2 ${
-                activeChunk.simplificationLevel ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"
-              } px-2 py-1 rounded text-xs font-medium inline-flex items-center`}>
-                <Zap className="w-4 h-4 mr-1" />
-                {activeChunk.simplificationLevel ? 
-                  `Simplified (${Math.round(activeChunk.simplificationLevel)}%)` : 
-                  "Original Text (0%)"
-                }
+              {/* Simplification level indicator - renamed from "Metric" to "Simplified" */}
+              <div className="flex items-center">
+                <span className="text-sm font-medium text-gray-700 mr-2">Simplified:</span>
+                <div className={`
+                  inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                  ${activeChunk.simplificationLevel > 50 ? "bg-blue-100 text-blue-800" : 
+                    activeChunk.simplificationLevel > 0 ? "bg-indigo-100 text-indigo-800" : 
+                    "bg-green-100 text-green-800"}
+                `}>
+                  <Zap className="w-3 h-3 mr-1" />
+                  {activeChunk.simplificationLevel ? 
+                    `${Math.round(activeChunk.simplificationLevel)}%` : 
+                    "0%"
+                  }
+                </div>
               </div>
             </div>
           </div>
