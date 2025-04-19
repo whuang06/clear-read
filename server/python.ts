@@ -43,30 +43,41 @@ const SCRIPTS_DIR = path.join(process.cwd(), "attached_assets");
 
 // Helper function to execute Python scripts
 async function execPythonScript(scriptPath: string, args: object): Promise<string> {
-  // Instead of using a file, we'll pass the arguments directly to the script as a JSON string
-  // This avoids file path issues
-  const argsJson = JSON.stringify(args);
-  
   try {
-    // Execute Python script with args as a direct JSON parameter
-    // Use single quotes around the JSON string to avoid shell escaping issues
-    const command = `python3 ${scriptPath} '${argsJson.replace(/'/g, "\\'")}'`;
+    // Create a temporary JSON file to pass the arguments
+    // This avoids shell escaping issues completely
+    const tempArgsPath = `${scriptPath}.args.json`;
+    fs.writeFileSync(tempArgsPath, JSON.stringify(args, null, 2));
     
     try {
-      const { stdout, stderr } = await execPromise(command);
-      if (stderr) {
-        console.error(`Python script stderr: ${stderr}`);
+      // Execute Python script with the args file path instead of command line arguments
+      const command = `python3 ${scriptPath} "${tempArgsPath}"`;
+      
+      try {
+        const { stdout, stderr } = await execPromise(command);
+        if (stderr) {
+          console.error(`Python script stderr: ${stderr}`);
+        }
+        return stdout;
+      } catch (error: any) {
+        console.error(`Error executing Python script: ${error.message}`);
+        if (error.stdout) {
+          console.error(`Python stdout: ${error.stdout}`);
+        }
+        if (error.stderr) {
+          console.error(`Python stderr: ${error.stderr}`);
+        }
+        throw error;
       }
-      return stdout;
-    } catch (error: any) {
-      console.error(`Error executing Python script: ${error.message}`);
-      if (error.stdout) {
-        console.error(`Python stdout: ${error.stdout}`);
+    } finally {
+      // Clean up the temporary args file
+      try {
+        if (fs.existsSync(tempArgsPath)) {
+          fs.unlinkSync(tempArgsPath);
+        }
+      } catch (unlinkError) {
+        console.error("Failed to delete temporary args file:", unlinkError);
       }
-      if (error.stderr) {
-        console.error(`Python stderr: ${error.stderr}`);
-      }
-      throw error;
     }
   } catch (error) {
     console.error("Error executing Python script:", error);
@@ -97,8 +108,9 @@ try:
     
     from chunker import chunk_text
 
-    # Parse arguments from command line JSON string
-    args = json.loads(sys.argv[1])
+    # Parse arguments from JSON file
+    with open(sys.argv[1], 'r') as f:
+        args = json.loads(f.read())
     text = args.get("text", "")
     
     if not text or len(text.strip()) == 0:
@@ -245,8 +257,9 @@ try:
     
     from question_generator import generate_questions_from_chunk
 
-    # Parse arguments from command line JSON string
-    args = json.loads(sys.argv[1])
+    # Parse arguments from JSON file
+    with open(sys.argv[1], 'r') as f:
+        args = json.loads(f.read())
     text = args.get("text", "")
 
     # Generate questions
@@ -327,8 +340,9 @@ try:
     
     from difficulty_assessor import rate_chunk_difficulty
 
-    # Parse arguments from command line JSON string
-    args = json.loads(sys.argv[1])
+    # Parse arguments from JSON file
+    with open(sys.argv[1], 'r') as f:
+        args = json.loads(f.read())
     text = args.get("text", "")
 
     # Rate difficulty
@@ -401,6 +415,11 @@ import json
 import sys
 import os
 import traceback
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("reviewer")
 
 try:
     # Ensure the current directory is in the Python path
@@ -409,21 +428,46 @@ try:
     
     from response_reviewer import review_responses
 
-    # Parse arguments from command line JSON string
-    args = json.loads(sys.argv[1])
+    # Parse arguments from JSON file
+    with open(sys.argv[1], 'r') as f:
+        file_content = f.read()
+        logger.info(f"Reading JSON args from: {sys.argv[1]}")
+        args = json.loads(file_content)
+    
     chunk = args.get("chunk", "")
     questions = args.get("questions", [])
     responses = args.get("responses", [])
+    
+    logger.info(f"Processing chunk of length: {len(chunk)}")
+    logger.info(f"Questions count: {len(questions)}")
+    logger.info(f"Responses count: {len(responses)}")
+    
+    # Log the first parts of each for debug
+    if chunk:
+        logger.info(f"Chunk preview: {chunk[:50]}...")
+    if questions and len(questions) > 0:
+        logger.info(f"First question: {questions[0]}")
+    if responses and len(responses) > 0:
+        logger.info(f"First response: {responses[0]}")
 
     # Review responses
+    logger.info("Calling review_responses function...")
     feedback = review_responses(chunk, questions, responses)
+    logger.info(f"Got feedback with rating: {feedback.get('rating')}")
 
     # Output JSON
-    print(json.dumps(feedback))
+    result = json.dumps(feedback)
+    logger.info(f"Returning result length: {len(result)}")
+    print(result)
 except Exception as e:
+    error_type = type(e).__name__
+    error_msg = str(e)
+    traceback_str = traceback.format_exc()
+    logger.error(f"Error: {error_type} - {error_msg}")
+    logger.error(f"Traceback: {traceback_str}")
     print(json.dumps({
-        "error": str(e),
-        "traceback": traceback.format_exc()
+        "error": f"{error_type}: {error_msg}",
+        "traceback": traceback_str
     }))
     sys.exit(1)
 `;
@@ -521,8 +565,9 @@ try:
     from adaptive_reader import AdaptiveReader
     from difficulty_assessor import rate_chunk_difficulty
 
-    # Parse arguments from command line JSON string
-    args = json.loads(sys.argv[1])
+    # Parse arguments from JSON file
+    with open(sys.argv[1], 'r') as f:
+        args = json.loads(f.read())
     text = args.get("text", "")
     rating = args.get("rating", 0)
     performance = args.get("performance", 0)
