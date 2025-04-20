@@ -146,6 +146,8 @@ class AdaptiveReader:
             f"- Use simpler vocabulary appropriate for someone with {100-percent}% of college reading ability\n"
             f"- Create shorter sentences with clearer structure\n"
             f"- Simplify complex concepts but preserve all key information\n"
+            f"- CRITICAL: PRESERVE EXACTLY THE SAME PARAGRAPH STRUCTURE as the original text\n"
+            f"- IMPORTANT: MAINTAIN ALL LINE BREAKS from the original text in your simplified version\n"
             f"- The degree of simplification should be EXACTLY {percent}%\n\n"
             f"TEXT: {text}\n\n"
             f"SIMPLIFIED ({percent}%):"

@@ -235,37 +235,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if this is the first chunk
       const isFirstChunk = chunkId === 1;
       
-      // Direct approach: For negative ratings, always simplify
-      let simplifiedText, factor, isSimplified;
-      
+      // DIRECT APPROACH FOR NEGATIVE RATINGS
       if (!isFirstChunk && rating < 0) {
-        console.log("*** DIRECT ROUTE HANDLING: Negative rating detected, forcing simplification ***");
+        console.log(`*** DIRECT APPROACH FOR NEGATIVE RATINGS (${rating}) ***`);
         
-        // Calculate factor based on rating severity
+        // Bypass all the complex logic and directly determine simplification level based on rating
+        let simplificationFactor;
         if (rating <= -150) {
-          factor = 0.4; // 40% for very negative
-          console.log(`*** Very negative rating (${rating}), using 40% simplification ***`);
+          simplificationFactor = 0.4; // 40% for very negative
+          console.log(`*** Very negative rating (${rating}): Using 40% simplification ***`);
         } else if (rating <= -100) {
-          factor = 0.3; // 30% for moderately negative
-          console.log(`*** Moderately negative rating (${rating}), using 30% simplification ***`);
+          simplificationFactor = 0.3; // 30% for moderately negative
+          console.log(`*** Moderately negative rating (${rating}): Using 30% simplification ***`);
         } else {
-          factor = 0.2; // 20% for slightly negative
-          console.log(`*** Slightly negative rating (${rating}), using 20% simplification ***`);
+          simplificationFactor = 0.2; // 20% for slightly negative
+          console.log(`*** Slightly negative rating (${rating}): Using 20% simplification ***`);
         }
         
-        // Call adaptChunk but force our own factor values
-        const result = await adaptChunk(text, rating, isFirstChunk);
-        simplifiedText = result.simplifiedText;
-        isSimplified = true;
+        // Use the Python script to do the text simplification directly
+        const adaptiveReader = new AdaptiveReader();
+        const simplifiedText = await adaptiveReader.simplifyText(text, simplificationFactor);
         
-        console.log(`*** ENSURING SIMPLIFICATION: Factor=${factor}, isSimplified=true ***`);
-      } else {
-        // Normal processing for first chunk or non-negative ratings
-        const result = await adaptChunk(text, rating, isFirstChunk);
-        simplifiedText = result.simplifiedText;
-        factor = result.factor;
-        isSimplified = factor > 0;
-      }
+        // Log what happened
+        console.log(`Direct simplification: Factor=${simplificationFactor}, Simplified=${simplifiedText !== text}`);
+        console.log(`Original preview: "${text.substring(0, 30)}..."`);
+        console.log(`Simplified preview: "${simplifiedText.substring(0, 30)}..."`);
+        
+        // Assess difficulty of simplified text
+        let newDifficulty = originalDifficulty;
+        try {
+          newDifficulty = await assessDifficulty(simplifiedText);
+          console.log(`Simplified difficulty: ${newDifficulty}`);
+        } catch (error) {
+          console.error("Error assessing simplified difficulty:", error);
+        }
+        
+        // Return the simplified version with correct metadata 
+        return res.json({
+          text: simplifiedText,
+          isSimplified: true,
+          simplificationLevel: Math.round(simplificationFactor * 100), 
+          originalDifficulty,
+          newDifficulty
+        });
+      } 
+      
+      // Normal processing for first chunk or positive ratings
+      console.log(`Standard adaptation for chunk ${chunkId} (${isFirstChunk ? 'first chunk' : 'positive rating'})`);
+      const { simplifiedText, factor } = await adaptChunk(text, rating, isFirstChunk);
+      const isSimplified = factor > 0;
       
       console.log(`[ROUTE DEBUG] Simplification factor: ${factor}, isSimplified: ${isSimplified}`);
       console.log(`[ROUTE DEBUG] Original text preview: "${text.substring(0, 30)}..."`);
@@ -283,21 +301,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Error assessing simplified difficulty:", newDifficultyError);
           // Continue even if new difficulty assessment fails
         }
-      }
-      
-      // CRITICAL FIX: Force the simplification flag and percentage for negative ratings
-      if (!isFirstChunk && rating < 0) {
-        console.log(`*** FIXING RESPONSE FOR NEGATIVE RATING: Ensuring isSimplified=true ***`);
-        isSimplified = true;
-        
-        // Make absolutely sure we're sending back the simplified text
-        return res.json({
-          text: simplifiedText,
-          isSimplified: true, 
-          simplificationLevel: Math.round(factor * 100),
-          originalDifficulty,
-          newDifficulty
-        });
       }
       
       // Normal response
