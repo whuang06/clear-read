@@ -18,6 +18,7 @@ export interface Chunk {
   simplificationLevel?: number;
   isCombined?: boolean;
   isCombinedInto?: number;
+  summary?: string;
   status: "pending" | "active" | "completed" | "combined";
 }
 

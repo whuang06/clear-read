@@ -192,11 +192,77 @@ except Exception as e:
           throw new Error("Invalid response format from Python: expected array of chunks");
         }
         
+        // Post-process: Combine chunks that are too short (less than a paragraph)
+        const MIN_CHUNK_LENGTH = 150; // Roughly 2-3 sentences
+        const MIN_SENTENCES = 2;
+        
+        const combinedChunks: any[] = [];
+        let currentChunk: any | null = null;
+        
+        console.log(`Original chunk count from API: ${parsedOutput.length}`);
+        
+        for (const chunk of parsedOutput) {
+          // Skip empty chunks
+          if (!chunk.text || chunk.text.trim().length === 0) {
+            continue;
+          }
+          
+          // If this is the first chunk, or the current chunk is already large enough
+          if (!currentChunk) {
+            currentChunk = { ...chunk };
+            
+            // If the first chunk is large enough, add it directly
+            if (chunk.text.length >= MIN_CHUNK_LENGTH && chunk.sentences.length >= MIN_SENTENCES) {
+              combinedChunks.push(currentChunk);
+              currentChunk = null;
+            }
+            continue;
+          }
+          
+          // If we have a current chunk but it's too small, combine with this one
+          if (currentChunk.text.length < MIN_CHUNK_LENGTH || currentChunk.sentences.length < MIN_SENTENCES) {
+            // Combine text with proper spacing
+            currentChunk.text = `${currentChunk.text}\n\n${chunk.text}`;
+            
+            // Expand the token count and range
+            currentChunk.token_count += chunk.token_count;
+            currentChunk.end_index = chunk.end_index;
+            
+            // Combine sentences arrays
+            currentChunk.sentences = [...currentChunk.sentences, ...chunk.sentences];
+            
+            // If the combined chunk is now large enough, add it
+            if (currentChunk.text.length >= MIN_CHUNK_LENGTH && currentChunk.sentences.length >= MIN_SENTENCES) {
+              combinedChunks.push(currentChunk);
+              currentChunk = null;
+            }
+          } else {
+            // Current chunk is already large enough, add it and start a new one
+            combinedChunks.push(currentChunk);
+            currentChunk = { ...chunk };
+            
+            // If the new chunk is also large enough, add it directly
+            if (chunk.text.length >= MIN_CHUNK_LENGTH && chunk.sentences.length >= MIN_SENTENCES) {
+              combinedChunks.push(currentChunk);
+              currentChunk = null;
+            }
+          }
+        }
+        
+        // Don't forget the last chunk if there is one
+        if (currentChunk) {
+          combinedChunks.push(currentChunk);
+        }
+        
+        console.log(`After combining: ${combinedChunks.length} chunks (reduced from ${parsedOutput.length})`);
+        
+        // Now the regular processing continues with our combined chunks
+        
         // Get difficulty for the first chunk only
         let firstChunkDifficulty: number | undefined;
         try {
-          if (parsedOutput.length > 0) {
-            firstChunkDifficulty = await assessDifficulty(parsedOutput[0].text);
+          if (combinedChunks.length > 0) {
+            firstChunkDifficulty = await assessDifficulty(combinedChunks[0].text);
             console.log(`First chunk difficulty: ${firstChunkDifficulty}`);
           }
         } catch (difficultyError) {
@@ -204,7 +270,7 @@ except Exception as e:
           // Continue without setting difficulty
         }
         
-        const chunks: Chunk[] = parsedOutput.map((chunk: any, index: number) => ({
+        const chunks: Chunk[] = combinedChunks.map((chunk: any, index: number) => ({
           ...chunk,
           id: index + 1,
           status: index === 0 ? "active" : "pending",
