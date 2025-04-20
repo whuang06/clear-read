@@ -447,7 +447,17 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
   };
   
   const moveToNextChunk = async () => {
-    const nextIndex = session.activeChunkIndex + 1;
+    let nextIndex = session.activeChunkIndex + 1;
+    if (nextIndex >= session.chunks.length) return;
+    
+    // Skip over any chunks that have been combined with others
+    while (nextIndex < session.chunks.length && 
+           session.chunks[nextIndex].status === "combined") {
+      console.log(`Skipping combined chunk at index ${nextIndex}`);
+      nextIndex++;
+    }
+    
+    // Check again if we've gone past the end
     if (nextIndex >= session.chunks.length) return;
     
     // Set the active index first for immediate UI feedback
@@ -459,13 +469,47 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
   };
   
   const moveToPreviousChunk = async () => {
-    const prevIndex = session.activeChunkIndex - 1;
+    let prevIndex = session.activeChunkIndex - 1;
     if (prevIndex < 0) return;
     
-    // Check if the previous chunk is completed
+    // Skip over any chunks that have been combined with others
+    while (prevIndex >= 0 && 
+           (session.chunks[prevIndex].status === "combined" || 
+            session.chunks[prevIndex].status === "completed")) {
+      
+      // Log why we're skipping this chunk
+      if (session.chunks[prevIndex].status === "combined") {
+        console.log(`Skipping combined chunk at index ${prevIndex}`);
+      } else {
+        console.log(`Skipping completed chunk at index ${prevIndex}`);
+      }
+      
+      prevIndex--;
+    }
+    
+    // Check again if we've gone past the beginning
+    if (prevIndex < 0) {
+      console.log("No previous valid chunks found");
+      return;
+    }
+    
+    // Set the active index
+    setSession(prev => ({ ...prev, activeChunkIndex: prevIndex }));
+    
+    // Then load questions for the previous chunk if needed
     const prevChunk = session.chunks[prevIndex];
-    if (prevChunk.status === "completed") {
-      console.log("Cannot navigate to completed chunk:", prevIndex);
+    await loadQuestionsForChunk(prevChunk.id, prevChunk.text);
+  };
+  
+  const setActiveChunkIndex = async (index: number) => {
+    if (index < 0 || index >= session.chunks.length) return;
+    
+    // Check if the selected chunk is valid
+    const selectedChunk = session.chunks[index];
+    
+    // Don't allow navigating to completed chunks
+    if (selectedChunk.status === "completed") {
+      console.log("Cannot navigate to completed chunk:", index);
       toast({
         title: "Navigation Restricted",
         description: "You cannot return to completed chunks. Please continue with your current chunk.",
@@ -474,23 +518,12 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // Set the active index
-    setSession(prev => ({ ...prev, activeChunkIndex: prevIndex }));
-    
-    // Then load questions for the previous chunk if needed
-    await loadQuestionsForChunk(prevChunk.id, prevChunk.text);
-  };
-  
-  const setActiveChunkIndex = async (index: number) => {
-    if (index < 0 || index >= session.chunks.length) return;
-    
-    // Check if the selected chunk is completed
-    const selectedChunk = session.chunks[index];
-    if (selectedChunk.status === "completed") {
-      console.log("Cannot navigate to completed chunk:", index);
+    // Don't allow navigating to combined chunks
+    if (selectedChunk.status === "combined") {
+      console.log("Cannot navigate to combined chunk:", index);
       toast({
-        title: "Navigation Restricted",
-        description: "You cannot return to completed chunks. Please continue with your current chunk.",
+        title: "Combined Chunk",
+        description: "This chunk has been combined with another. Please select a different chunk.",
         variant: "destructive"
       });
       return;

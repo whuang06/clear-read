@@ -51,6 +51,11 @@ export function ChunkNavigation() {
         
         <nav className="divide-y divide-gray-200 overflow-y-auto max-h-96">
           {chunks.map((chunk, index) => {
+            // Skip chunks that have been combined with others
+            if (chunk.status === "combined") {
+              return null;
+            }
+            
             const isActive = index === activeChunkIndex;
             const isCompleted = chunk.status === "completed";
             const isPending = index > activeChunkIndex;
@@ -79,6 +84,9 @@ export function ChunkNavigation() {
                       </div>
                       <p className="truncate text-sm font-medium text-gray-900">
                         {getChunkTitle(chunk.text)}
+                        {chunk.isCombined && (
+                          <span className="ml-1 text-xs text-purple-600">(Combined)</span>
+                        )}
                       </p>
                     </div>
                     <div className="mt-1 flex items-center">
