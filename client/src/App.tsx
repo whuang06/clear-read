@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Reading from "@/pages/reading";
+import Progress from "@/pages/progress";
 import { ReadingProvider } from "./context/ReadingContext";
 
 function Router() {
@@ -13,6 +14,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/reading" component={Reading} />
+      <Route path="/progress" component={Progress} />
       <Route component={NotFound} />
     </Switch>
   );
