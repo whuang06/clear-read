@@ -17,10 +17,10 @@ import {
 import { updateUserElo, updateSessionProgress, updateDailyProgress, getUserProgressHistory } from "./progress";
 import { getReadingLevel } from "./elo";
 import { eq } from "drizzle-orm";
-import { users, userProgress } from "@shared/schema";
+import { users, userProgress, type User } from "@shared/schema";
 import { db } from "./db";
 
-// Extended feedback interface to support ELO updates
+// Extended feedback interface to support Lexile score updates
 interface Feedback {
   review: string;
   rating: number;

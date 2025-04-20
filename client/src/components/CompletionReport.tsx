@@ -16,7 +16,7 @@ export function CompletionReport() {
   const averageRating = performance || 0;
   const normalizedScore = Math.round(((averageRating + 200) / 400) * 100); // Convert from -200 to 200 scale to 0-100
   
-  // Get the last feedback with ELO update data
+  // Get the last feedback with Lexile score update data
   const feedbackEntries = Object.entries(feedback);
   const lastFeedbackWithElo = feedbackEntries
     .filter(([_, f]) => f.elo_update)

@@ -103,16 +103,16 @@ export default function Home() {
                 Track Your Reading Progress
               </p>
               <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-                Monitor your reading skills development over time with our ELO rating system and interactive analytics.
+                Monitor your reading skills development over time with our Lexile®-like score system and interactive analytics.
               </p>
             </div>
             
             <div className="mt-10">
               <div className="flex flex-col md:flex-row items-center justify-between bg-white p-6 rounded-lg shadow-md">
                 <div className="mb-6 md:mb-0 md:w-1/2 pr-0 md:pr-10">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">ELO Rating System</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">Lexile®-like Score System</h3>
                   <p className="text-gray-600 mb-4">
-                    Our advanced ELO rating system measures your reading comprehension level. As you read and answer questions, your rating adjusts based on your performance and text difficulty.
+                    Our advanced Lexile®-like scoring system measures your reading comprehension level. As you read and answer questions, your score adjusts based on your performance and text difficulty.
                   </p>
                   <ul className="space-y-2 mb-6">
                     <li className="flex items-start">
