@@ -1,44 +1,53 @@
-// ELO rating system implementation
-// The ELO rating is used to track a user's reading comprehension ability
+// Lexile-based reading level system implementation
+// Tracks a user's reading comprehension ability using a Lexile-like scale
 
 /**
- * Calculate the expected score of player A against player B
- * @param ratingA - The ELO rating of player A
- * @param ratingB - The ELO rating of player B
- * @returns The expected score for player A (between 0 and 1)
+ * Calculate the expected score of a reader against a text of specific difficulty
+ * @param readerLevel - The Lexile-like score of the reader
+ * @param textDifficulty - The Lexile-like score of the text
+ * @returns The expected score for the reader (between 0 and 1)
  */
-function calculateExpectedScore(ratingA: number, ratingB: number): number {
-  return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
+function calculateExpectedScore(readerLevel: number, textDifficulty: number): number {
+  // Use a modified ELO formula that better represents reading ability vs. text difficulty
+  // The denominator divisor (500 instead of standard 400) makes the curve more gradual,
+  // which better represents the progressive nature of reading difficulty
+  return 1 / (1 + Math.pow(10, (textDifficulty - readerLevel) / 500));
 }
 
 /**
- * Calculate ELO rating change for a user based on their performance against text difficulty
- * @param userRating - Current user ELO rating
- * @param textDifficulty - Text difficulty rating (Lexile-like scale: 0-2000)
+ * Calculate Lexile score change for a user based on their performance against text difficulty
+ * @param readerLevel - Current reader's Lexile-like score
+ * @param textDifficulty - Text difficulty rating (Lexile scale: 0-2000)
  * @param performance - User performance rating (negative to positive range)
  * @param kFactor - K factor determines the maximum possible adjustment per performance
- * @returns The change in ELO rating
+ * @returns The change in Lexile-like score
  */
 export function calculateEloChange(
-  userRating: number, 
+  readerLevel: number, 
   textDifficulty: number, 
   performance: number, 
   kFactor: number = 20
 ): number {
-  // Convert text difficulty to ELO scale (0-2000 -> centered around 1000)
-  const textElo = textDifficulty;
+  // Calculate the distance between text difficulty and reader level
+  // This influences how much the reader's level should change
+  const difficultyGap = Math.abs(textDifficulty - readerLevel);
   
-  // Calculate expected score (how well the user should perform against this text)
-  const expectedScore = calculateExpectedScore(userRating, textElo);
+  // Difficulty adjustment: Reading far above or below level has diminishing returns
+  // Reading near your level has maximum impact on growth
+  const difficultyAdjustment = Math.exp(-Math.pow((difficultyGap / 400), 2)) * 1.5;
+  
+  // Calculate expected score (how well the reader should perform against this text)
+  const expectedScore = calculateExpectedScore(readerLevel, textDifficulty);
   
   // Convert performance to a score between 0 and 1
   // (performance typically ranges from -200 to +200)
   const actualScore = normalizePerformance(performance);
   
-  // Calculate ELO change
-  const ratingChange = Math.round(kFactor * (actualScore - expectedScore));
+  // Calculate Lexile score change, with difficulty adjustment applied
+  const ratingChange = Math.round(kFactor * (actualScore - expectedScore) * difficultyAdjustment);
   
-  return ratingChange;
+  // Limit maximum gain/loss per reading to prevent extreme swings
+  return Math.max(-40, Math.min(40, ratingChange));
 }
 
 /**
@@ -59,27 +68,27 @@ export function normalizePerformance(performance: number): number {
 }
 
 /**
- * Gets the appropriate K-factor based on user's rating
- * K-factor determines how quickly ratings change
- * - Higher K = faster changes
- * - Lower K = more stable ratings
+ * Gets the appropriate K-factor based on reader's Lexile score
+ * K-factor determines how quickly Lexile scores change
+ * - Higher K = faster changes for developing readers
+ * - Lower K = more stable scores for advanced readers
  */
-export function getKFactor(userRating: number): number {
-  // New users have higher K-factor to adjust quickly
-  if (userRating < 1200) {
+export function getKFactor(lexileScore: number): number {
+  // Beginning readers have higher K-factor to adjust quickly
+  if (lexileScore < 800) {
     return 32;
   }
-  // Mid-range users have standard K-factor
-  if (userRating < 1800) {
+  // Intermediate readers have standard K-factor
+  if (lexileScore < 1200) {
     return 24;
   }
-  // Advanced users have lower K-factor for stability
+  // Advanced readers have lower K-factor for stability
   return 16;
 }
 
 /**
- * Calculate the adjustment to the ELO K-factor based on the number of chunks completed
- * Users with fewer chunks should have more volatile ratings
+ * Calculate the adjustment to the Lexile K-factor based on the number of chunks completed
+ * Users with fewer chunks should have more volatile scores
  */
 export function getSessionKFactorAdjustment(completedChunks: number): number {
   // New readers (few chunks) get more volatile ratings
@@ -99,16 +108,18 @@ export function getSessionKFactorAdjustment(completedChunks: number): number {
 }
 
 /**
- * Calculate user's overall reading level based on ELO
- * @param elo - User's current ELO rating
- * @returns String describing reading level
+ * Calculate user's overall reading level based on Lexile-like score
+ * @param lexileScore - User's current Lexile-like score
+ * @returns String describing reading level aligned with educational standards
  */
-export function getReadingLevel(elo: number): string {
-  if (elo < 800) return "Beginning Reader";
-  if (elo < 1000) return "Developing Reader";
-  if (elo < 1200) return "Proficient Reader";
-  if (elo < 1400) return "Skilled Reader";
-  if (elo < 1600) return "Advanced Reader";
-  if (elo < 1800) return "Expert Reader";
-  return "Master Reader";
+export function getReadingLevel(lexileScore: number): string {
+  // Categories roughly aligned with standard Lexile framework bands
+  if (lexileScore < 400) return "Early Reader (K-1)";
+  if (lexileScore < 650) return "Emerging Reader (1-2)";
+  if (lexileScore < 850) return "Transitional Reader (3-5)";
+  if (lexileScore < 1000) return "Grade-Level Reader (6-8)";
+  if (lexileScore < 1200) return "Advanced Reader (9-10)";
+  if (lexileScore < 1400) return "College-Ready Reader (11-12)";
+  if (lexileScore < 1600) return "College-Level Reader";
+  return "Professional/Academic Reader";
 }

@@ -244,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Review user responses and update ELO rating
+  // Review user responses and update Lexile score
   app.post("/api/review-responses", async (req, res) => {
     try {
       const { chunkId, text, questions, responses, userId, sessionId, difficulty } = req.body;
@@ -271,11 +271,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // No need to cast since reviewResponses now returns the correct type
       feedback = { ...feedback };
       
-      // If we have user, session ID, and difficulty, update ELO rating and progress
+      // If we have user, session ID, and difficulty, update Lexile score and progress
       let eloUpdate = null;
       if (userId && sessionId && difficulty && typeof feedback.rating === 'number') {
         try {
-          // Update user's ELO rating based on performance
+          // Update user's Lexile score based on performance
           eloUpdate = await updateUserElo(
             userId, 
             chunkId, 
@@ -289,10 +289,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Update daily progress tracking
           await updateDailyProgress(userId);
           
-          // Get the reading level based on new ELO
+          // Get the reading level based on new Lexile score
           const readingLevel = getReadingLevel(eloUpdate.newRating);
           
-          // Add ELO data to response
+          // Add Lexile data to response
           feedback.elo_update = {
             previousRating: eloUpdate.newRating - eloUpdate.ratingChange,
             newRating: eloUpdate.newRating,
@@ -300,10 +300,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             readingLevel
           };
           
-          console.log(`Updated ELO for user ${userId}: ${eloUpdate.newRating} (${eloUpdate.ratingChange > 0 ? '+' : ''}${eloUpdate.ratingChange})`);
+          console.log(`Updated Lexile score for user ${userId}: ${eloUpdate.newRating}L (${eloUpdate.ratingChange > 0 ? '+' : ''}${eloUpdate.ratingChange})`);
         } catch (eloError) {
-          console.error("Error updating ELO rating:", eloError);
-          // Continue even if ELO update fails
+          console.error("Error updating Lexile score:", eloError);
+          // Continue even if Lexile score update fails
         }
       }
       

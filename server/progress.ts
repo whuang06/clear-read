@@ -4,7 +4,7 @@ import { eq, and, count, avg, max, desc, sql } from "drizzle-orm";
 import { calculateEloChange, getKFactor, getSessionKFactorAdjustment } from "./elo";
 
 /**
- * Update a user's ELO rating after completing a reading chunk
+ * Update a user's Lexile score after completing a reading chunk
  */
 export async function updateUserElo(
   userId: number, 
@@ -31,19 +31,19 @@ export async function updateUserElo(
       .from(feedback)
       .where(eq(feedback.userId, userId));
     
-    // Calculate ELO change
+    // Calculate Lexile score change
     const baseKFactor = getKFactor(user.elo_rating);
     const kFactorMultiplier = getSessionKFactorAdjustment(completedChunks ? Number(completedChunks) : 0);
     const adjustedKFactor = baseKFactor * kFactorMultiplier;
     
     const ratingChange = calculateEloChange(
-      user.elo_rating,
-      difficulty,
-      performance,
+      user.elo_rating,  // Current Lexile score
+      difficulty,       // Text difficulty on Lexile scale
+      performance,      // Performance rating
       adjustedKFactor
     );
     
-    // Calculate new rating
+    // Calculate new Lexile score (minimum score of 100L)
     const newRating = Math.max(100, user.elo_rating + ratingChange);
     
     // Update user's rating in database
