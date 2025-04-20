@@ -485,8 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           user = await storage.createUser({
             username: "reader1",
-            elo_rating: 1250,
-            created_at: new Date(new Date().setMonth(new Date().getMonth() - 3)) // 3 months ago
+            password: "demo123", // Demo password for sample user
           });
           
           console.log(`Created demo user with ID: ${user.id}`);
@@ -538,7 +537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               elo_rating: currentElo,
               sessions_completed: 1,
               chunks_completed: chunksCompleted,
-              avg_performance: (Math.random() * 100) + 50, // Random performance 50-150
+              avg_performance: Math.floor((Math.random() * 100) + 50), // Random performance 50-150 (integer)
               avg_difficulty: avgDifficulty
             };
             
