@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { 
   Dialog, 
   DialogContent, 
@@ -25,15 +26,18 @@ export function TextInput({ open, onOpenChange }: TextInputProps) {
   const [error, setError] = useState<string | null>(null);
   const { processText, session } = useReading();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
-  // Effect to monitor session changes and close dialog when in reading state
+  // Effect to monitor session changes and navigate to reading page when processing is complete
   useEffect(() => {
     if (isLoading && session.status === "reading" && session.chunks.length > 0) {
-      console.log("Session transition detected via effect - closing dialog");
+      console.log("Session transition detected via effect - closing dialog and navigating to reading page");
       setIsLoading(false);
       onOpenChange(false);
+      // Navigate directly to the reading page
+      setLocation("/reading");
     }
-  }, [session.status, session.chunks.length, isLoading, onOpenChange]);
+  }, [session.status, session.chunks.length, isLoading, onOpenChange, setLocation]);
 
   const handleSubmit = async () => {
     if (!inputText.trim()) {
@@ -64,9 +68,11 @@ export function TextInput({ open, onOpenChange }: TextInputProps) {
       // Give a short wait to ensure state is updated
       setTimeout(() => {
         if (session.status === "reading" && session.chunks.length > 0) {
-          console.log("TextInput: Processing successful, closing dialog");
+          console.log("TextInput: Processing successful, closing dialog and navigating to reading page");
           setIsLoading(false);
           onOpenChange(false);
+          // Navigate directly to the reading page
+          setLocation("/reading");
         } else {
           console.log("TextInput: Processing appears complete but needs further verification");
           // State will be checked by the effect 

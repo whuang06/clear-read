@@ -1,111 +1,130 @@
 import requests
 import json
-from typing import Optional
-from difficulty_assessor import rate_chunk_difficulty
-
-# Gemini 2.0 Flash API configuration
 import os
+import logging
+import sys
+from typing import Dict, Any, Tuple, Optional, List
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("adaptive_reader")
+
+# Configuration
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 API_URL = (
     f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 )
 
+# Fixed simplification levels to choose from (10% increments)
+SIMPLIFICATION_LEVELS = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 
 class AdaptiveReader:
     """
-    Tracks reader performance and adapts text difficulty by simplifying chunks
-    when performance is below chunk difficulty.
+    Simplified adaptive reader that only uses fixed simplification levels.
     """
     def __init__(self, initial_performance: float = 0.0):
         self.performance = initial_performance
         self.count = 0
         self.last_simplified = False
         self.last_factor = 0.0
-
+    
     def update_performance(self, rating: float) -> None:
         """
         Update overall performance as running average of ratings.
         """
         self.count += 1
         self.performance = ((self.performance * (self.count - 1)) + rating) / self.count
-
-    def process_next_chunk(
-        self,
-        chunk: str,
-        prev_rating: float
-    ) -> str:
+        logger.info(f"Updated performance to {self.performance:.2f} with rating {rating}")
+    
+    def get_simplification_level(self, current_level: float, performance: float) -> float:
         """
-        Update performance with prev_rating. Then compare performance to chunk difficulty:
-        - If performance < difficulty: simplify with computed factor.
-        - Else if previous chunk was simplified: continue simplifying with same factor.
-        - Otherwise: return original chunk.
+        Get the appropriate simplification level based on performance.
+        Only returns values from the fixed list of simplification levels.
+        Changes are limited to 20% maximum between chunks.
         """
-        self.update_performance(prev_rating)
-        difficulty = rate_chunk_difficulty(chunk)
-        if difficulty is None:
-            self.last_simplified = False
-            return chunk
-        # struggling: simplify
-        if self.performance < difficulty:
-            factor = min(1.0, max(0.0, (difficulty - self.performance) / difficulty))
-            self.last_factor = factor
-            self.last_simplified = True
-            return self.simplify_chunk(chunk, factor)
-        # performance >= difficulty
-        if self.last_simplified:
-            # continue simplifying with previous factor
-            return self.simplify_chunk(chunk, self.last_factor)
-        # good comprehension on original text
-        self.last_simplified = False
-        return chunk
-
+        # Determine direction of change
+        if performance > 100:  # Very good performance
+            # Reduce simplification by 10-20%
+            adjustment = -0.2
+        elif performance > 0:  # Good performance
+            # Reduce simplification by 10%
+            adjustment = -0.1
+        elif performance > -100:  # Moderately poor performance
+            # Increase simplification by 10%
+            adjustment = 0.1
+        else:  # Very poor performance
+            # Increase simplification by 10-20%
+            adjustment = 0.2
+            
+        # Calculate target level (but don't apply yet)
+        target_level = current_level + adjustment
+        
+        # Find the closest allowed level in our fixed list
+        # that doesn't exceed 20% change from current level
+        allowed_levels = [
+            level for level in SIMPLIFICATION_LEVELS 
+            if abs(level - current_level) <= 0.2
+        ]
+        
+        # Find the closest allowed level to our target
+        closest_level = min(allowed_levels, key=lambda x: abs(x - target_level))
+        
+        logger.info(f"Simplification adjustment: current={current_level}, " +
+                   f"adjustment={adjustment}, target={target_level}, closest_allowed={closest_level}")
+        
+        return closest_level
+    
     def simplify_chunk(self, text: str, factor: float) -> str:
         """
-        Uses Gemini to simplify the text by given factor (0-1) preserving length and nuances.
-        Factor is capped at 0.7 (70%) to prevent over-simplification.
+        Simplify text using Gemini API with explicit simplification instructions.
         """
-        # Safety check to prevent over-simplification
-        factor = min(0.7, max(0.1, factor))
-        
-        # Round to nearest 10%
+        # Ensure factor is valid and rounded to nearest 10%
+        factor = min(0.7, max(0, factor))
         factor = round(factor * 10) / 10
+        
+        # If no simplification needed, return original
+        if factor == 0.0:
+            logger.info("No simplification needed (factor=0)")
+            return text
+            
+        # Calculate percentage for prompt
         percent = int(factor * 100)
+        logger.info(f"Simplifying text at {percent}% level")
         
         prompt = (
-            f"Simplify the following text by exactly {percent}% while preserving its length, key details, and contextual meaning."
-            f" Simplify vocabulary and sentence structure, but maintain the same information content."
-            f" Return only the simplified text with no additional commentary.\n\n{text}"
+            f"Simplify this text to make it {percent}% easier to read. Keep the meaning the same, but use simpler words and shorter sentences.\n\n"
+            f"TEXT: {text}\n\n"
+            f"SIMPLIFIED ({percent}%):"
         )
+        
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.3, "maxOutputTokens": len(text) * 2}
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": len(text) * 2,
+                "topK": 40,
+                "topP": 0.95
+            }
         }
-        resp = requests.post(API_URL, headers={"Content-Type": "application/json"}, json=payload)
+        
         try:
+            resp = requests.post(API_URL, headers={"Content-Type": "application/json"}, json=payload)
             resp.raise_for_status()
-        except requests.HTTPError:
-            print(f"Simplify API error ({resp.status_code}): {resp.text}")
-            raise
-        data = resp.json()
-        cand = data.get("candidates", [{}])[0]
-        if "content" in cand:
-            parts = cand["content"].get("parts", [])
-            simplified = "".join(p.get("text", "") for p in parts)
-        else:
-            simplified = cand.get("output", "")
-        # strip code fences if any
-        return simplified.strip().strip('`').strip()
-
-
-if __name__ == "__main__":
-    # Demo: simulate sequence
-    reader = AdaptiveReader()
-    # previous rating example
-    prev_rating = -50  # low understanding
-    next_chunk = (
-        "Complex circuits use Kirchhoff's laws to analyze currents and voltages. "
-        "These laws state that the sum of currents at a junction is zero, and the sum of voltage drops around a loop is zero."
-    )
-    out = reader.process_next_chunk(next_chunk, prev_rating)
-    print("Output chunk (simplified if needed):")
-    print(out)
+            
+            data = resp.json()
+            if "candidates" in data and len(data["candidates"]) > 0:
+                candidate = data["candidates"][0]
+                if "content" in candidate:
+                    parts = candidate["content"].get("parts", [])
+                    simplified = "".join(p.get("text", "") for p in parts)
+                    # Clean up any formatting artifacts
+                    simplified = simplified.strip()
+                    simplified = simplified.replace("SIMPLIFIED:", "").strip()
+                    return simplified
+            
+            logger.error(f"Unexpected API response format: {data}")
+            return text  # Return original as fallback
+            
+        except Exception as e:
+            logger.error(f"Error during simplification: {str(e)}")
+            return text  # Return original as fallback

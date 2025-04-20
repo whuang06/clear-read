@@ -582,78 +582,51 @@ try:
     # Assess difficulty of the current chunk
     difficulty = rate_chunk_difficulty(text)
     
-    # COMPLETELY REWRITTEN SIMPLIFICATION ALGORITHM
+    # FIXED ADAPTIVE ALGORITHM USING ONLY PREDEFINED SIMPLIFICATION LEVELS
     
-    # Step 1: Calculate base simplification only if performance < difficulty
-    if difficulty is not None and performance < difficulty:
-        # Calculate raw factor (capped at 0.7 maximum)
-        raw_factor = min(0.7, (difficulty - performance) / difficulty)
-        
-        # Always ensure raw_factor is between 0 and 0.7
-        raw_factor = max(0, min(0.7, raw_factor))
-        
-        # Set minimum simplification to 0.1 (10%) if any simplification is needed
-        raw_factor = max(0.1, raw_factor)
-        
-        # Step 2: Handle the case when we have previous simplification
-        if last_simplified:
-            # Get previous factor as baseline
-            prev_factor = last_factor
-            
-            print(f"Previous factor: {prev_factor}, New raw factor: {raw_factor}")
-            
-            # Limit change to at most 0.2 (20%) from previous factor
-            if raw_factor > prev_factor + 0.2:
-                raw_factor = prev_factor + 0.2
-                print(f"Capping increase to +20%: {raw_factor}")
-            elif raw_factor < prev_factor - 0.2:
-                raw_factor = prev_factor - 0.2
-                print(f"Capping decrease to -20%: {raw_factor}")
-        
-        # Step 3: Round to nearest 10%
-        factor = round(raw_factor * 10) / 10
-        
-        # Double check the max cap at 0.7 (70%)
-        factor = min(0.7, factor)
-        
-        # Additional safety check - ensure factor is reasonable
-        if factor < 0 or factor > 0.7:
-            print(f"WARNING: Factor out of bounds: {factor}, fixing to safe value")
-            factor = max(0, min(0.7, factor))
-        
-        print(f"Final simplification factor: {factor}")
-        simplified_text = reader.simplify_chunk(text, factor)
-        is_simplified = True
-        
-    # Step 4: Handle when performance >= difficulty but we simplified previously
-    elif last_simplified:
-        # Continue simplifying but adjust based on performance
-        if performance > 0:  # Performance is improving
-            # Reduce simplification by 10%
-            raw_factor = max(0, last_factor - 0.1)
-        else:  # Performance is still negative
-            # Keep same factor or slightly increase if performance is very poor
-            raw_factor = last_factor
-            if performance < -100:
-                # Add 10% but observe 20% max change and 70% absolute max
-                raw_factor = min(0.7, last_factor + 0.1)
-        
-        # Round to nearest 10%
-        factor = round(raw_factor * 10) / 10
-        
-        # Safety check - ensure factor is reasonable
-        factor = max(0, min(0.7, factor))
-        
-        print(f"Continuing with adjusted factor: {factor}")
-        simplified_text = reader.simplify_chunk(text, factor)
-        is_simplified = factor > 0
-        
-    # Step 5: No simplification needed
-    else:
+    # Only allow fixed simplification levels: 0%, 10%, 20%, 30%, 40%, 50%, 60%, 70%
+    # First chunk: use original
+    if not last_simplified and last_factor == 0.0:
+        # First chunk is always shown in original form
+        print("First chunk - using original text")
         simplified_text = text
         factor = 0.0
         is_simplified = False
-        print("No simplification needed")
+        
+    elif difficulty is not None and (performance < difficulty or last_simplified):
+        # Determine the appropriate simplification level based on performance
+        # Limit changes to maximum of 20% between chunks
+        current_level = last_factor if last_simplified else 0.0
+        target_level = reader.get_simplification_level(current_level, performance)
+        
+        print(f"Simplification decision: perf={performance:.2f} diff={difficulty}")
+        print(f"Using simplification level: {int(target_level * 100)}%")
+        
+        # Fixed limit to prevent over-simplification
+        factor = min(0.7, target_level)
+        
+        # Safety check
+        if factor < 0 or factor > 0.7:
+            print(f"WARNING: Invalid factor {factor}, fixing to valid value")
+            factor = min(0.7, max(0, factor))
+            
+        # Round to nearest 10%
+        factor = round(factor * 10) / 10
+        
+        # Apply simplification
+        if factor > 0:
+            simplified_text = reader.simplify_chunk(text, factor)
+            is_simplified = True
+        else:
+            simplified_text = text
+            is_simplified = False
+            
+    else:
+        # No simplification needed
+        simplified_text = text
+        factor = 0.0
+        is_simplified = False
+        print("No simplification needed - using original text")
     
     # Output JSON with results
     result = {
