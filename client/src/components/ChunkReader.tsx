@@ -141,6 +141,15 @@ export function ChunkReader() {
             </div>
           </div>
           
+          {/* Display the chunk summary as a headline if available */}
+          {activeChunk.summary && (
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">
+                {activeChunk.summary}
+              </h3>
+            </div>
+          )}
+          
           <div className="prose prose-slate prose-lg max-w-none font-serif">
             <p className="leading-relaxed">
               {activeChunk.text}
