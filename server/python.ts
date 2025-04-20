@@ -636,7 +636,7 @@ export async function reviewResponses(
   chunk: string, 
   questions: string[], 
   responses: string[]
-): Promise<{ review: string; rating: number }> {
+): Promise<ReviewFeedback> {
   try {
     // Create a temporary script to call the response reviewer
     const tempScriptPath = path.join(SCRIPTS_DIR, "temp_reviewer.py");
