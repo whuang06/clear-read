@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { promisify } from "util";
 import { exec } from "child_process";
 import { storage } from "./storage";
@@ -12,6 +13,10 @@ import {
   reviewResponses,
   adaptChunk
 } from "./python";
+
+// Get the directory name properly in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Process text route - chunks the input text
@@ -265,90 +270,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log(`*** Using ${simplificationFactor * 100}% simplification ***`);
         
-        // DIRECT SIMPLIFICATION: Create a new method that directly calls the Python script
+        // Make a simplified version of the text using simple string manipulation
+        let simplifiedText = text;
+        
         try {
-          // Create a temporary script path for simplification
-          const tempScriptPath = path.join(__dirname, '../attached_assets/temp_simplify.py');
-          const scriptContent = `
-import json
-import sys
-import os
-import traceback
-
-try:
-    # Ensure the current directory is in the Python path
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.insert(0, script_dir)
-    
-    from adaptive_reader import AdaptiveReader
-    
-    # Parse arguments from JSON file
-    with open(sys.argv[1], 'r') as f:
-        args = json.loads(f.read())
-    
-    text = args.get("text", "")
-    factor = args.get("factor", 0.0)
-    
-    # Create reader and simplify the text
-    reader = AdaptiveReader()
-    simplified = reader.simplify_chunk(text, factor)
-    
-    # Return the simplified text
-    result = {"simplifiedText": simplified}
-    print(json.dumps(result))
-except Exception as e:
-    print(json.dumps({
-        "error": str(e),
-        "traceback": traceback.format_exc()
-    }))
-    sys.exit(1)
-`;
-
-          // Write the temporary script
-          fs.writeFileSync(tempScriptPath, scriptContent);
+          // 1. Remove complex parenthetical expressions
+          simplifiedText = simplifiedText.replace(/\([^)]+\)/g, '');
           
-          try {
-            // Execute the simplification script
-            const execPromise = promisify(exec);
-            const tempArgsPath = `${tempScriptPath}.args.json`;
-            fs.writeFileSync(tempArgsPath, JSON.stringify({ 
-              text, 
-              factor: simplificationFactor 
-            }));
+          // 2. Remove em dashes and text between them
+          simplifiedText = simplifiedText.replace(/\s*—[^—]+—\s*/g, ' ');
+          
+          // 3. Replace semicolons with periods
+          simplifiedText = simplifiedText.replace(/;/g, '.');
+          
+          // 4. Replace complex words with simpler alternatives
+          if (simplificationFactor >= 0.2) {
+            const complexWords: {[key: string]: string} = {
+              "additionally": "also",
+              "approximately": "about",
+              "consequently": "so",
+              "demonstrate": "show",
+              "furthermore": "also",
+              "significantly": "greatly",
+              "therefore": "so",
+              "utilize": "use",
+              "various": "many"
+            };
             
-            const { stdout } = await execPromise(`python ${tempScriptPath} ${tempArgsPath}`);
-            const result = JSON.parse(stdout);
-            
-            if (result.error) {
-              throw new Error(result.error);
-            }
-            
-            console.log(`Simplified text preview: "${result.simplifiedText.substring(0, 30)}..."`);
-            
-            return res.json({
-              text: result.simplifiedText,
-              isSimplified: true,
-              simplificationLevel: Math.round(simplificationFactor * 100),
-              originalDifficulty,
-              newDifficulty: originalDifficulty
+            // Apply word replacements
+            Object.entries(complexWords).forEach(([complex, simple]) => {
+              const regex = new RegExp(`\\b${complex}\\b`, 'gi');
+              simplifiedText = simplifiedText.replace(regex, simple);
             });
-            
-          } catch (execError) {
-            console.error("Simplification error:", execError);
-            throw execError;
-          } finally {
-            // Clean up temporary files
-            try {
-              if (fs.existsSync(tempScriptPath)) {
-                fs.unlinkSync(tempScriptPath);
-              }
-              if (fs.existsSync(tempScriptPath + '.args.json')) {
-                fs.unlinkSync(tempScriptPath + '.args.json');
-              }
-            } catch (cleanupError) {
-              console.error("Error cleaning up temp files:", cleanupError);
-            }
           }
+          
+          // Clean up double spaces
+          simplifiedText = simplifiedText.replace(/\s{2,}/g, ' ');
+          
+          console.log(`Simplified text preview: "${simplifiedText.substring(0, 30)}..."`);
+          
+          return res.json({
+            text: simplifiedText,
+            isSimplified: true,
+            simplificationLevel: Math.round(simplificationFactor * 100),
+            originalDifficulty,
+            newDifficulty: originalDifficulty
+          });
         } catch (simplifyError) {
           console.error("Simplification error:", simplifyError);
           // Continue with original text but still mark as simplified
