@@ -589,31 +589,36 @@ try:
         # Cap at 0.75 so it never goes to 100%
         raw_factor = (difficulty - performance) / difficulty
         
-        # Apply a more gradual curve
-        # For small performance gaps, simplify very little
-        # For large gaps, simplify more but never reach 100%
-        if raw_factor < 0.3:
-            # Small gap - very subtle simplification
-            factor = raw_factor * 0.5  # Half the raw factor
-        elif raw_factor < 0.6:
-            # Medium gap - moderate simplification
-            factor = 0.15 + (raw_factor - 0.3) * 0.6  # Start at 15% and grow moderately
-        else:
-            # Large gap - more significant but still not maximum simplification
-            factor = 0.33 + (raw_factor - 0.6) * 0.7  # Cap at around 75%
-            
-        # Hard cap at 0.75 to ensure we never reach 100% simplification
-        factor = min(0.75, max(0.1, factor))
+        # Calculate the base factor from performance gap
+        raw_factor = min(0.7, raw_factor)  # Cap at 0.7 to avoid too much simplification
+        
+        # Round to nearest 10%
+        factor = round(raw_factor * 10) / 10
+        
+        # Ensure factor is at least 0.1 (10%) if any simplification is needed
+        factor = max(0.1, factor)
+        
+        # Hard cap at 0.7 (70%) as the maximum simplification
+        factor = min(0.7, factor)
         
         simplified_text = reader.simplify_chunk(text, factor)
         is_simplified = True
     elif last_simplified:
         # Continue simplifying with previous factor if we simplified the last chunk
-        # If previous simplification was too aggressive, tone it down slightly
-        adjusted_factor = last_factor * 0.9 if last_factor > 0.5 else last_factor
+        # Adjust by 10% increments based on performance trend
+        if performance > 0:  # Performance is improving
+            # Reduce simplification by 10%
+            adjusted_factor = max(0, last_factor - 0.1)
+        else:  # Performance is still negative
+            # Keep same factor or increase by 10% if very negative
+            adjusted_factor = min(0.7, last_factor + 0.1) if performance < -100 else last_factor
+            
+        # Round to nearest 10%
+        adjusted_factor = round(adjusted_factor * 10) / 10
+        
         simplified_text = reader.simplify_chunk(text, adjusted_factor)
         factor = adjusted_factor
-        is_simplified = True
+        is_simplified = factor > 0
     else:
         # Use original text
         simplified_text = text

@@ -106,14 +106,14 @@ export function ChunkNavigation() {
                       {index === 0 || chunk.simplificationLevel !== undefined ? (
                         <span className={`inline-flex items-center ml-2 px-2 py-0.5 rounded text-xs font-medium ${
                           !chunk.simplificationLevel ? "bg-green-50 text-green-700" :
-                          chunk.simplificationLevel < 25 ? "bg-blue-50 text-blue-700" :
-                          chunk.simplificationLevel < 50 ? "bg-indigo-50 text-indigo-700" :
-                          "bg-purple-50 text-purple-700"
+                          chunk.simplificationLevel <= 20 ? "bg-blue-50 text-blue-700" :
+                          chunk.simplificationLevel <= 40 ? "bg-indigo-50 text-indigo-700" :
+                          chunk.simplificationLevel <= 60 ? "bg-purple-50 text-purple-700" :
+                          "bg-fuchsia-50 text-fuchsia-700"
                         }`}>
-                          {!chunk.simplificationLevel ? "Original (0%)" :
-                           chunk.simplificationLevel < 25 ? `Slight (${Math.round(chunk.simplificationLevel)}%)` :
-                           chunk.simplificationLevel < 50 ? `Moderate (${Math.round(chunk.simplificationLevel)}%)` :
-                           `Strong (${Math.round(chunk.simplificationLevel)}%)`
+                          {chunk.simplificationLevel 
+                            ? `${Math.round(chunk.simplificationLevel / 10) * 10}%` 
+                            : "0%"
                           }
                         </span>
                       ) : null}

@@ -126,15 +126,15 @@ export function ChunkReader() {
               {/* Simplification level indicator - always show */}
               <div className={`ml-2 ${
                 !activeChunk.simplificationLevel ? "bg-green-50 text-green-700" :
-                activeChunk.simplificationLevel < 25 ? "bg-blue-50 text-blue-700" :
-                activeChunk.simplificationLevel < 50 ? "bg-indigo-50 text-indigo-700" :
-                "bg-purple-50 text-purple-700"
+                activeChunk.simplificationLevel <= 20 ? "bg-blue-50 text-blue-700" :
+                activeChunk.simplificationLevel <= 40 ? "bg-indigo-50 text-indigo-700" :
+                activeChunk.simplificationLevel <= 60 ? "bg-purple-50 text-purple-700" :
+                "bg-fuchsia-50 text-fuchsia-700"
               } px-2 py-1 rounded text-xs font-medium inline-flex items-center`}>
                 <Zap className="w-4 h-4 mr-1" />
-                {!activeChunk.simplificationLevel ? "Original Text (0%)" :
-                 activeChunk.simplificationLevel < 25 ? `Slightly Simplified (${Math.round(activeChunk.simplificationLevel)}%)` :
-                 activeChunk.simplificationLevel < 50 ? `Moderately Simplified (${Math.round(activeChunk.simplificationLevel)}%)` :
-                 `Greatly Simplified (${Math.round(activeChunk.simplificationLevel)}%)`
+                {activeChunk.simplificationLevel 
+                  ? `Simplified (${Math.round(activeChunk.simplificationLevel / 10) * 10}%)`
+                  : "Original Text (0%)"
                 }
               </div>
             </div>
