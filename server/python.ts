@@ -573,6 +573,9 @@ try:
     performance = args.get("performance", 0)
     last_simplified = args.get("last_simplified", False)
     last_factor = args.get("last_factor", 0.0)
+    
+    # Direct debug at entry point
+    print(f"CRITICAL DEBUG: Got rating={rating}, performance={performance}, last_simplified={last_simplified}, last_factor={last_factor}")
 
     # Create adaptive reader with persisted state
     reader = AdaptiveReader(performance)
