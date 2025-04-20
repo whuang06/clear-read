@@ -585,13 +585,34 @@ try:
     # Determine if we need to simplify based on performance vs. difficulty
     if difficulty is not None and performance < difficulty:
         # Calculate simplification factor based on performance gap
-        factor = min(1.0, max(0.0, (difficulty - performance) / difficulty))
+        # More gradual progression - making this more subtle
+        # Cap at 0.75 so it never goes to 100%
+        raw_factor = (difficulty - performance) / difficulty
+        
+        # Apply a more gradual curve
+        # For small performance gaps, simplify very little
+        # For large gaps, simplify more but never reach 100%
+        if raw_factor < 0.3:
+            # Small gap - very subtle simplification
+            factor = raw_factor * 0.5  # Half the raw factor
+        elif raw_factor < 0.6:
+            # Medium gap - moderate simplification
+            factor = 0.15 + (raw_factor - 0.3) * 0.6  # Start at 15% and grow moderately
+        else:
+            # Large gap - more significant but still not maximum simplification
+            factor = 0.33 + (raw_factor - 0.6) * 0.7  # Cap at around 75%
+            
+        # Hard cap at 0.75 to ensure we never reach 100% simplification
+        factor = min(0.75, max(0.1, factor))
+        
         simplified_text = reader.simplify_chunk(text, factor)
         is_simplified = True
     elif last_simplified:
         # Continue simplifying with previous factor if we simplified the last chunk
-        simplified_text = reader.simplify_chunk(text, last_factor)
-        factor = last_factor
+        # If previous simplification was too aggressive, tone it down slightly
+        adjusted_factor = last_factor * 0.9 if last_factor > 0.5 else last_factor
+        simplified_text = reader.simplify_chunk(text, adjusted_factor)
+        factor = adjusted_factor
         is_simplified = True
     else:
         # Use original text
