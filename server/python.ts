@@ -6,6 +6,18 @@ import { Chunk, Sentence } from "@/types";
 
 // Store adaptive reader state between calls
 // Using a singleton to persist across requests
+// Interface for review feedback with optional ELO data
+export interface ReviewFeedback {
+  review: string;
+  rating: number;
+  elo_update?: {
+    previousRating: number;
+    newRating: number;
+    change: number;
+    readingLevel: string;
+  };
+}
+
 class AdaptiveReaderState {
   private static instance: AdaptiveReaderState;
   public performance: number = 0.0;

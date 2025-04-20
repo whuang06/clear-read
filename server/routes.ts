@@ -265,8 +265,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the feedback from the AI
       let feedback = await reviewResponses(text, questionTexts, responseTexts);
       
-      // Convert to mutable object if needed
-      feedback = { ...feedback };
+      // Convert to mutable object with correct typing
+      feedback = { ...feedback } as Feedback;
       
       // If we have user, session ID, and difficulty, update ELO rating and progress
       let eloUpdate = null;
