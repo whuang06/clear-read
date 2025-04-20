@@ -599,6 +599,20 @@ try:
         # Ensure factor is at least 0.1 (10%) if any simplification is needed
         factor = max(0.1, factor)
         
+        # Limit the change from previous simplification to 20% max
+        if last_simplified:
+            # Get previous factor as baseline
+            prev_factor = last_factor
+            
+            # Limit factor to be at most 0.2 (20%) different from previous
+            if factor > prev_factor + 0.2:
+                factor = prev_factor + 0.2
+            elif factor < prev_factor - 0.2:
+                factor = prev_factor - 0.2
+                
+            # Round again to nearest 10%
+            factor = round(factor * 10) / 10
+        
         # Hard cap at 0.7 (70%) as the maximum simplification
         factor = min(0.7, factor)
         
@@ -611,8 +625,12 @@ try:
             # Reduce simplification by 10%
             adjusted_factor = max(0, last_factor - 0.1)
         else:  # Performance is still negative
-            # Keep same factor or increase by 10% if very negative
-            adjusted_factor = min(0.7, last_factor + 0.1) if performance < -100 else last_factor
+            # Increase simplification by 10% if performance is very negative
+            if performance < -100:
+                # Limit the increase to 20% maximum
+                adjusted_factor = min(0.7, last_factor + 0.1)
+            else:
+                adjusted_factor = last_factor
             
         # Round to nearest 10%
         adjusted_factor = round(adjusted_factor * 10) / 10
