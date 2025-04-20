@@ -82,10 +82,21 @@ export function ChunkNavigation() {
                       >
                         {index + 1}
                       </div>
-                      <p className="truncate text-sm font-medium text-gray-900">
-                        {chunk.summary ? chunk.summary : getChunkTitle(chunk.text)}
-                        {chunk.isCombined && (
-                          <span className="ml-1 text-xs text-purple-600">(Combined)</span>
+                      <p className="truncate text-sm font-semibold text-gray-900">
+                        {chunk.summary ? (
+                          <span className="inline-block">
+                            {chunk.summary}
+                            {chunk.isCombined && (
+                              <span className="ml-1 text-xs font-normal text-purple-600">(Combined)</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="inline-block text-gray-700">
+                            {getChunkTitle(chunk.text)}
+                            {chunk.isCombined && (
+                              <span className="ml-1 text-xs font-normal text-purple-600">(Combined)</span>
+                            )}
+                          </span>
                         )}
                       </p>
                     </div>

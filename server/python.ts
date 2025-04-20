@@ -500,13 +500,13 @@ try:
     
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
     
-    prompt = "Create a very brief one-sentence summary of the following text that captures its main idea. The summary should be no more than 15 words and be in plain language.\\n\\nText: " + text
+    prompt = "Write a very brief headline (5-7 words) that captures the main topic of this specific text excerpt. Don't use complete sentences, just write a concise newspaper-style headline.\\n\\nText: " + text
     
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "temperature": 0.2,
-            "maxOutputTokens": 50,
+            "temperature": 0.1,
+            "maxOutputTokens": 25,
             "topK": 40,
             "topP": 0.95
         }
@@ -527,8 +527,31 @@ try:
             
             # Clean up any formatting artifacts
             summary = summary.strip()
+            
+            # Remove quotes if present
             if summary.startswith('"') and summary.endswith('"'):
                 summary = summary[1:-1].strip()
+            
+            # Clean up potential artifacts and ensure proper headline format
+            # Remove trailing punctuation
+            summary = summary.rstrip('.,;:!?')
+            
+            # Capitalize words properly for a headline
+            words = summary.split()
+            if words:
+                # First word always capitalized
+                words[0] = words[0].capitalize()
+                
+                # Last word always capitalized
+                if len(words) > 1:
+                    words[-1] = words[-1].capitalize()
+                
+                # Recombine
+                summary = ' '.join(words)
+                
+            # Limit length
+            if len(summary) > 50:
+                summary = summary[:47] + '...'
             
             logger.info(f"Successfully generated summary: {summary}")
             print(json.dumps(summary))
