@@ -151,7 +151,7 @@ export function ChunkReader() {
               variant="outline" 
               size="sm"
               onClick={moveToPreviousChunk}
-              disabled={activeChunkIndex === 0}
+              disabled={activeChunkIndex === 0 || chunks[activeChunkIndex - 1]?.status === "completed"}
               className="flex items-center"
             >
               <ChevronLeft className="mr-2 h-4 w-4" />

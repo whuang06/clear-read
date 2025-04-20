@@ -58,8 +58,8 @@ export function ChunkNavigation() {
             return (
               <button 
                 key={chunk.id}
-                onClick={() => setActiveChunkIndex(index)}
-                className={`block w-full text-left hover:bg-gray-50 transition-colors ${
+                onClick={() => chunk.status !== "completed" ? setActiveChunkIndex(index) : null}
+                className={`block w-full text-left ${chunk.status !== "completed" ? "hover:bg-gray-50" : "opacity-75 cursor-not-allowed"} transition-colors ${
                   isActive ? "bg-gray-50 hover:bg-gray-100" : ""
                 }`}
               >

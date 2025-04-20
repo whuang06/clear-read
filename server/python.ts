@@ -590,7 +590,8 @@ try:
         raw_factor = (difficulty - performance) / difficulty
         
         # Calculate the base factor from performance gap
-        raw_factor = min(0.7, raw_factor)  # Cap at 0.7 to avoid too much simplification
+        # Ensure raw_factor is between 0 and 0.7
+        raw_factor = max(0, min(0.7, raw_factor))  # Cap at 0.7 to avoid too much simplification
         
         # Round to nearest 10%
         factor = round(raw_factor * 10) / 10
