@@ -202,6 +202,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Generate a summary for a chunk
+  app.post("/api/generate-summary", async (req, res) => {
+    try {
+      const { chunkId, text } = req.body;
+      
+      if (!chunkId || !text) {
+        return res.status(400).json({ 
+          message: "Missing required fields: chunkId, text" 
+        });
+      }
+      
+      console.log(`Generating summary for chunk ${chunkId}`);
+      
+      // Get summary using Python API
+      const summary = await generateSummary(text);
+      return res.json({ summary });
+    } catch (error: any) {
+      console.error("Error in summary generation route:", error);
+      return res.status(500).json({ 
+        message: "Failed to generate summary", 
+        error: error.message 
+      });
+    }
+  });
+  
   // Review user responses
   app.post("/api/review-responses", async (req, res) => {
     try {
@@ -230,32 +255,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error reviewing responses:", error);
       return res.status(500).json({ 
         message: "Failed to review responses", 
-        error: error.message 
-      });
-    }
-  });
-  
-  // Generate a summary for a chunk
-  app.post("/api/generate-summary", async (req, res) => {
-    try {
-      const { text } = req.body;
-      
-      if (!text || typeof text !== "string") {
-        return res.status(400).json({ message: "Text is required" });
-      }
-      
-      if (text.trim().length === 0) {
-        return res.status(400).json({ message: "Text cannot be empty" });
-      }
-      
-      // Generate a summary
-      const summary = await generateSummary(text);
-      
-      return res.json({ summary });
-    } catch (error: any) {
-      console.error("Error generating summary:", error);
-      return res.status(500).json({ 
-        message: "Failed to generate summary", 
         error: error.message 
       });
     }

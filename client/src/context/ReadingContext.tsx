@@ -325,7 +325,9 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
                 text: adaptData.text,
                 difficulty: adaptData.isSimplified ? adaptData.newDifficulty : adaptData.originalDifficulty,
                 isSimplified: adaptData.isSimplified,
-                simplificationLevel: adaptData.simplificationLevel || 0
+                simplificationLevel: adaptData.simplificationLevel || 0,
+                // Clear the summary if the text was simplified so it will be regenerated with new content
+                summary: adaptData.isSimplified ? undefined : updatedChunks[nextChunkIndex].summary
               };
               
               return { ...prev, chunks: updatedChunks };
