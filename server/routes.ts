@@ -523,13 +523,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       progressEntries.push(entry);
     }
     
-    // Update user's final ELO
+    // Update user's final Lexile score
     await db.update(users)
       .set({ elo_rating: currentElo })
       .where(eq(users.id, user.id));
     
     console.log(`Generated ${progressEntries.length} progress history records for user ${user.id}`);
-    console.log(`Updated user ELO rating to ${currentElo}`);
+    console.log(`Updated user Lexile score to ${currentElo}L`);
   }
 
   // API endpoint to get user progress history
@@ -588,7 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             await generateDemoProgressHistory(user);
             
-            // Refresh user data to get updated ELO
+            // Refresh user data to get updated Lexile score
             const updatedUser = await storage.getUser(targetUserId);
             if (updatedUser) {
               user = updatedUser;
@@ -605,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Get user reading level based on ELO
+      // Get user reading level based on Lexile score
       const readingLevel = getReadingLevel(user.elo_rating);
       
       // Get user's progress history

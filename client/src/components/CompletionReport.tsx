@@ -152,18 +152,18 @@ export function CompletionReport() {
               </p>
             )}
             
-            {/* ELO Rating Change */}
+            {/* Lexile Score Change */}
             {lastFeedbackWithElo && lastFeedbackWithElo.elo_update && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <h4 className="text-md font-medium text-gray-800 mb-2 flex items-center">
                   <BarChart4 className="h-5 w-5 mr-2 text-primary" />
-                  Reading Level Progress
+                  Lexile Score Progress
                 </h4>
                 <div className="flex items-center justify-between bg-primary-50 p-3 rounded-lg">
                   <div className="flex flex-col">
-                    <span className="text-sm text-gray-600">Previous Rating</span>
+                    <span className="text-sm text-gray-600">Previous Lexile</span>
                     <span className="text-xl font-semibold text-gray-800">
-                      {lastFeedbackWithElo.elo_update.previousRating}
+                      {lastFeedbackWithElo.elo_update.previousRating}L
                     </span>
                   </div>
                   
@@ -176,14 +176,14 @@ export function CompletionReport() {
                           : 'bg-gray-100 text-gray-800'
                     }`}>
                       {lastFeedbackWithElo.elo_update.change > 0 ? '+' : ''}
-                      {lastFeedbackWithElo.elo_update.change}
+                      {lastFeedbackWithElo.elo_update.change}L
                     </div>
                   </div>
                   
                   <div className="flex flex-col items-end">
-                    <span className="text-sm text-gray-600">New Rating</span>
+                    <span className="text-sm text-gray-600">New Lexile</span>
                     <span className="text-xl font-semibold text-gray-800">
-                      {lastFeedbackWithElo.elo_update.newRating}
+                      {lastFeedbackWithElo.elo_update.newRating}L
                     </span>
                   </div>
                 </div>

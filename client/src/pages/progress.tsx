@@ -80,7 +80,7 @@ export default function ProgressPage() {
     ...point,
     date: formatDate(point.date),
     // Create a formatted tooltip value
-    tooltipValue: `ELO: ${point.elo_rating} | Chunks: ${point.chunks_completed}`
+    tooltipValue: `Lexile: ${point.elo_rating}L | Chunks: ${point.chunks_completed}`
   })) || [];
 
   return (
@@ -143,8 +143,8 @@ export default function ProgressPage() {
                   </div>
                   
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Current ELO Rating</span>
-                    <span className="font-bold text-lg">{data.user.elo_rating}</span>
+                    <span className="text-muted-foreground">Current Lexile Score</span>
+                    <span className="font-bold text-lg">{data.user.elo_rating}L</span>
                   </div>
                   
                   <div className="flex justify-between items-center">
@@ -169,10 +169,10 @@ export default function ProgressPage() {
               </CardContent>
             </Card>
             
-            {/* ELO Progress Chart Card */}
+            {/* Lexile Progress Chart Card */}
             <Card>
               <CardHeader>
-                <CardTitle>ELO Rating Progress</CardTitle>
+                <CardTitle>Lexile Score Progress</CardTitle>
                 <CardDescription>
                   Your reading skill development over time
                 </CardDescription>
@@ -197,7 +197,7 @@ export default function ProgressPage() {
                       />
                       <Tooltip 
                         formatter={(value, name) => {
-                          if (name === 'elo_rating') return [value, 'ELO Rating'];
+                          if (name === 'elo_rating') return [`${value}L`, 'Lexile Score'];
                           return [value, name];
                         }} 
                       />
@@ -208,7 +208,7 @@ export default function ProgressPage() {
                         strokeWidth={2}
                         dot={{ strokeWidth: 2 }}
                         activeDot={{ r: 6 }}
-                        name="ELO"
+                        name="Lexile"
                       />
                       <ReferenceLine 
                         y={1000} 
