@@ -9,6 +9,28 @@ from typing import Dict, Any, Tuple, Optional, List
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("adaptive_reader")
 
+# TEST GEMINI API ON STARTUP
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+if GEMINI_API_KEY:
+    logger.info("GEMINI_API_KEY is set, testing API connection...")
+    test_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+    try:
+        test_resp = requests.post(
+            test_url, 
+            headers={"Content-Type": "application/json"}, 
+            json={"contents": [{"parts": [{"text": "Say 'API TEST SUCCESSFUL' and nothing else"}]}]}
+        )
+        if test_resp.status_code == 200:
+            logger.info(f"Gemini API test successful: {test_resp.status_code}")
+            logger.info(f"Response: {test_resp.text[:100]}...")
+        else:
+            logger.error(f"Gemini API test failed with status code: {test_resp.status_code}")
+            logger.error(f"Error response: {test_resp.text}")
+    except Exception as e:
+        logger.error(f"Error testing Gemini API: {str(e)}")
+else:
+    logger.error("GEMINI_API_KEY environment variable is not set!")
+
 # Configuration
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 API_URL = (
@@ -42,9 +64,18 @@ class AdaptiveReader:
         Only returns values from the fixed list of simplification levels.
         Changes are limited to 20% maximum between chunks.
         More aggressive simplification for poor performance.
+        
+        CRITICAL: FOR NEGATIVE PERFORMANCE, ALWAYS RETURN A NON-ZERO VALUE
         """
         logger.info(f"Determining simplification level - current level: {current_level}, performance: {performance}")
         
+        # FORCE SIMPLIFICATION FOR NEGATIVE PERFORMANCE
+        # If performance is negative, we want to ensure we get at least 10% simplification
+        if performance < 0 and current_level == 0:
+            logger.info("NEGATIVE PERFORMANCE DETECTED: FORCING MINIMUM 10% SIMPLIFICATION")
+            forced_level = 0.1  # 10% simplification
+            return forced_level
+            
         # Determine direction of change - make more aggressive for negative performance
         if performance > 100:  # Very good performance
             # Reduce simplification by 10-20%
@@ -79,6 +110,11 @@ class AdaptiveReader:
             level for level in SIMPLIFICATION_LEVELS 
             if abs(level - current_level) <= 0.2
         ]
+        
+        # If performance is negative, REMOVE 0.0 from allowed levels to force some simplification
+        if performance < 0 and 0.0 in allowed_levels and len(allowed_levels) > 1:
+            allowed_levels.remove(0.0)
+            logger.info("Removed 0.0 from allowed levels due to negative performance")
         
         # Find the closest allowed level to our target
         closest_level = min(allowed_levels, key=lambda x: abs(x - target_level))
