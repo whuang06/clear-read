@@ -500,12 +500,12 @@ try:
     
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
     
-    prompt = "Write a very brief headline (5-7 words) that captures the main topic of this specific text excerpt. Don't use complete sentences, just write a concise newspaper-style headline.\\n\\nText: " + text
+    prompt = "Write a unique, specific headline (4-6 words) that precisely captures the main topic of this particular text excerpt. Don't use generic descriptions or complete sentences. Focus on the key idea that makes this specific passage different from others. Use crisp, newspaper-style headline formatting.\\n\\nText: " + text
     
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "temperature": 0.1,
+            "temperature": 0.7,
             "maxOutputTokens": 25,
             "topK": 40,
             "topP": 0.95

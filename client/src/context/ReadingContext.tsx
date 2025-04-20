@@ -294,7 +294,9 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
                       difficulty: combinedData.isSimplified ? combinedData.newDifficulty : combinedData.originalDifficulty,
                       isSimplified: combinedData.isSimplified,
                       simplificationLevel: combinedData.simplificationLevel || 0,
-                      isCombined: true
+                      isCombined: true,
+                      // Clear the summary so it will be regenerated when viewing the chunk
+                      summary: undefined
                     };
                     
                     // Mark the following chunk as combined so we can skip it
@@ -347,19 +349,49 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
   };
 
   // Helper function to load questions for a chunk if they're not already loaded
-  // Also assess difficulty if not already set
+  // Also assess difficulty if not already set and generate summary if needed
   const loadQuestionsForChunk = async (chunkId: number, chunkText: string) => {
     // Get the chunk index
     const chunkIndex = session.chunks.findIndex(c => c.id === chunkId);
     if (chunkIndex === -1) return;
     
-    // Determine if we need to load questions and/or assess difficulty
+    // Determine if we need to load questions, assess difficulty, or generate summary
     const needQuestions = !session.questions[chunkId] || session.questions[chunkId].length === 0;
     const needDifficulty = session.chunks[chunkIndex].difficulty === undefined;
+    const needSummary = session.chunks[chunkIndex].summary === undefined;
     
-    // Skip if neither is needed
-    if (!needQuestions && !needDifficulty) {
+    // Skip if nothing is needed
+    if (!needQuestions && !needDifficulty && !needSummary) {
       return;
+    }
+    
+    // If we need a summary, request one from the API
+    if (needSummary) {
+      try {
+        const summaryResponse = await apiRequest(
+          "POST",
+          "/api/generate-summary",
+          { chunkId, text: chunkText }
+        );
+        
+        if (summaryResponse.ok) {
+          const summaryData = await summaryResponse.json();
+          
+          if (summaryData.summary) {
+            setSession(prev => {
+              const updatedChunks = [...prev.chunks];
+              updatedChunks[chunkIndex] = {
+                ...updatedChunks[chunkIndex],
+                summary: summaryData.summary
+              };
+              return { ...prev, chunks: updatedChunks };
+            });
+          }
+        }
+      } catch (summaryError) {
+        console.error("Error generating summary for chunk:", summaryError);
+        // Continue without a summary
+      }
     }
     
     console.log(`Dynamically loading data for chunk ${chunkId} (questions: ${needQuestions}, difficulty: ${needDifficulty})`);
