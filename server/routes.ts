@@ -270,42 +270,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log(`*** Using ${simplificationFactor * 100}% simplification ***`);
         
-        // Make a simplified version of the text using simple string manipulation
-        let simplifiedText = text;
-        
+        // We must use the Python API for text simplification
         try {
-          // 1. Remove complex parenthetical expressions
-          simplifiedText = simplifiedText.replace(/\([^)]+\)/g, '');
+          // Call our Python simplification method directly
+          const scriptPath = path.join(__dirname, '../attached_assets/adaptive_reader.py');
           
-          // 2. Remove em dashes and text between them
-          simplifiedText = simplifiedText.replace(/\s*—[^—]+—\s*/g, ' ');
+          // Create a temporary file for the input
+          const tempFile = path.join(__dirname, '../attached_assets/temp_simplify_input.json');
+          fs.writeFileSync(tempFile, JSON.stringify({
+            text: text,
+            factor: simplificationFactor
+          }));
           
-          // 3. Replace semicolons with periods
-          simplifiedText = simplifiedText.replace(/;/g, '.');
+          // Execute the Python script with direct arguments
+          const { stdout, stderr } = await promisify(exec)(
+            `python3 ${scriptPath} --simplify-text --input-file=${tempFile}`
+          );
           
-          // 4. Replace complex words with simpler alternatives
-          if (simplificationFactor >= 0.2) {
-            const complexWords: {[key: string]: string} = {
-              "additionally": "also",
-              "approximately": "about",
-              "consequently": "so",
-              "demonstrate": "show",
-              "furthermore": "also",
-              "significantly": "greatly",
-              "therefore": "so",
-              "utilize": "use",
-              "various": "many"
-            };
-            
-            // Apply word replacements
-            Object.entries(complexWords).forEach(([complex, simple]) => {
-              const regex = new RegExp(`\\b${complex}\\b`, 'gi');
-              simplifiedText = simplifiedText.replace(regex, simple);
-            });
+          console.log("Python simplification output:", stdout);
+          if (stderr) {
+            console.error("Python simplification error:", stderr);
           }
           
-          // Clean up double spaces
-          simplifiedText = simplifiedText.replace(/\s{2,}/g, ' ');
+          let simplifiedText;
+          try {
+            // Parse the JSON response
+            const result = JSON.parse(stdout);
+            simplifiedText = result.simplified_text || text;
+          } catch (parseError) {
+            console.error("Error parsing simplification output:", parseError);
+            // Try to extract the simplified text from non-JSON output using a regular expression
+            const match = stdout.match(/SIMPLIFIED_TEXT_START([\s\S]+?)SIMPLIFIED_TEXT_END/);
+            simplifiedText = match ? match[1].trim() : text;
+          }
           
           console.log(`Simplified text preview: "${simplifiedText.substring(0, 30)}..."`);
           

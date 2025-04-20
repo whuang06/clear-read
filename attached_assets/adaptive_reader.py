@@ -3,6 +3,7 @@ import json
 import os
 import logging
 import sys
+import argparse
 from typing import Dict, Any, Tuple, Optional, List
 
 # Set up logging
@@ -192,3 +193,58 @@ class AdaptiveReader:
         except Exception as e:
             logger.error(f"Error during simplification: {str(e)}")
             return text  # Return original as fallback
+
+# Command line interface for direct simplification
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Adaptive Reader Text Processing")
+    parser.add_argument("--simplify-text", action="store_true", help="Simplify the provided text")
+    parser.add_argument("--input-file", type=str, help="JSON file with text and factor")
+    parser.add_argument("--text", type=str, help="Text to simplify")
+    parser.add_argument("--factor", type=float, default=0.2, help="Simplification factor (0.0-0.7)")
+    
+    args = parser.parse_args()
+    
+    if args.simplify_text:
+        # Initialize the reader
+        reader = AdaptiveReader()
+        
+        if args.input_file:
+            try:
+                with open(args.input_file, 'r') as f:
+                    input_data = json.load(f)
+                    
+                text = input_data.get('text', '')
+                factor = input_data.get('factor', 0.2)
+                
+                if not text:
+                    print(json.dumps({"error": "No text provided in input file"}))
+                    sys.exit(1)
+                
+                # Perform simplification
+                simplified = reader.simplify_chunk(text, factor)
+                
+                # Output the result as JSON
+                print(json.dumps({
+                    "simplified_text": simplified,
+                    "factor": factor
+                }))
+                
+                # Also print markers for non-JSON parsing if needed
+                print(f"SIMPLIFIED_TEXT_START{simplified}SIMPLIFIED_TEXT_END")
+                
+            except Exception as e:
+                print(json.dumps({"error": str(e)}))
+                sys.exit(1)
+                
+        elif args.text:
+            # Perform simplification with direct text
+            simplified = reader.simplify_chunk(args.text, args.factor)
+            
+            # Output the result as JSON
+            print(json.dumps({
+                "simplified_text": simplified,
+                "factor": args.factor
+            }))
+        else:
+            print(json.dumps({"error": "Must provide either --input-file or --text"}))
+            sys.exit(1)
