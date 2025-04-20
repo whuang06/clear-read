@@ -52,11 +52,7 @@ export default function ProgressPage() {
 
   // Query to fetch user progress data
   const { data, isLoading, error, refetch } = useQuery<UserProgress>({
-    queryKey: ['user-progress', userId, timeRange],
-    queryFn: getQueryFn<UserProgress>({ 
-      endpoint: `/api/user-progress/${userId}?days=${timeRange}`,
-      on401: "throw" 
-    })
+    queryKey: [`/api/user-progress/${userId}?days=${timeRange}`]
   });
 
   // Show toast if there's an error
@@ -80,7 +76,7 @@ export default function ProgressPage() {
   };
 
   // Prepare data for the chart
-  const chartData = data?.progress_history.map(point => ({
+  const chartData = data?.progress_history.map((point: ProgressPoint) => ({
     ...point,
     date: formatDate(point.date),
     // Create a formatted tooltip value
@@ -166,7 +162,7 @@ export default function ProgressPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Total Readings</span>
                     <span className="font-medium">
-                      {data.progress_history.reduce((sum, point) => sum + point.chunks_completed, 0)} chunks
+                      {data.progress_history.reduce((sum: number, point: ProgressPoint) => sum + point.chunks_completed, 0)} chunks
                     </span>
                   </div>
                 </div>
