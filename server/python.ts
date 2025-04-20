@@ -467,6 +467,124 @@ except Exception as e:
   }
 }
 
+// Generate a summary of a chunk for display in navigation
+export async function generateSummary(text: string): Promise<string> {
+  try {
+    // Create a temporary script for summary generation
+    const tempScriptPath = path.join(SCRIPTS_DIR, "temp_summary.py");
+    const scriptContent = `
+import json
+import sys
+import os
+import traceback
+import logging
+import requests
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("summary_generator")
+
+try:
+    # Parse arguments from JSON file
+    with open(sys.argv[1], 'r') as f:
+        args = json.loads(f.read())
+    
+    text = args.get("text", "")
+    if not text:
+        raise ValueError("Text cannot be empty")
+    
+    # Use Gemini API to generate a summary
+    gemini_api_key = os.environ.get("GEMINI_API_KEY", "")
+    if not gemini_api_key:
+        raise ValueError("GEMINI_API_KEY environment variable not set")
+    
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
+    
+    prompt = "Create a very brief one-sentence summary of the following text that captures its main idea. The summary should be no more than 15 words and be in plain language.\\n\\nText: " + text
+    
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 50,
+            "topK": 40,
+            "topP": 0.95
+        }
+    }
+    
+    logger.info(f"Sending summary request to Gemini API for text of length {len(text)}")
+    resp = requests.post(api_url, headers={"Content-Type": "application/json"}, json=payload)
+    resp.raise_for_status()
+    
+    data = resp.json()
+    logger.info(f"Received API response")
+    
+    if "candidates" in data and len(data["candidates"]) > 0:
+        candidate = data["candidates"][0]
+        if "content" in candidate:
+            parts = candidate["content"].get("parts", [])
+            summary = "".join(p.get("text", "") for p in parts)
+            
+            # Clean up any formatting artifacts
+            summary = summary.strip()
+            if summary.startswith('"') and summary.endswith('"'):
+                summary = summary[1:-1].strip()
+            
+            logger.info(f"Successfully generated summary: {summary}")
+            print(json.dumps(summary))
+        else:
+            logger.error("No content in API response")
+            print(json.dumps(""))
+    else:
+        logger.error("No candidates in API response")
+        print(json.dumps(""))
+except Exception as e:
+    error_type = type(e).__name__
+    error_msg = str(e)
+    traceback_str = traceback.format_exc()
+    logger.error(f"Error: {error_type} - {error_msg}")
+    logger.error(f"Traceback: {traceback_str}")
+    print(json.dumps(""))
+    sys.exit(1)
+`;
+
+    // Write the temporary script
+    fs.writeFileSync(tempScriptPath, scriptContent);
+    
+    try {
+      // Execute the script
+      const stdout = await execPythonScript(tempScriptPath, { text });
+      
+      // Parse the result
+      try {
+        const summary = JSON.parse(stdout);
+        if (summary && typeof summary === 'string' && summary.length > 0) {
+          console.log(`Generated summary: "${summary}"`);
+          return summary;
+        } else {
+          console.log("Failed to generate summary, returning empty string");
+          return "";
+        }
+      } catch (parseError) {
+        console.error("Error parsing summary output:", parseError);
+        return "";
+      }
+    } finally {
+      // Clean up
+      try {
+        if (fs.existsSync(tempScriptPath)) {
+          fs.unlinkSync(tempScriptPath);
+        }
+      } catch (unlinkError) {
+        console.error("Failed to delete temporary script:", unlinkError);
+      }
+    }
+  } catch (error) {
+    console.error("Error generating summary:", error);
+    return "";
+  }
+}
+
 // Review responses using response_reviewer.py
 export async function reviewResponses(
   chunk: string, 

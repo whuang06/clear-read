@@ -11,7 +11,8 @@ import {
   generateQuestions,
   assessDifficulty,
   reviewResponses,
-  adaptChunk
+  adaptChunk,
+  generateSummary
 } from "./python";
 
 // Get the directory name properly in ES modules
@@ -63,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue without setting difficulty
       }
       
-      // Add ID, status, and simplified data to each chunk
+      // Add ID, status, and simplified data to each chunk first
       const processedChunks = chunks.map((chunk, index) => ({
         ...chunk,
         id: index + 1,
@@ -74,6 +75,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isSimplified: index === 0 ? false : undefined,
         simplificationLevel: index === 0 ? 0 : undefined
       }));
+      
+      // Now try to generate summaries in parallel
+      try {
+        const summaryPromises = processedChunks.map(chunk => generateSummary(chunk.text));
+        const summaries = await Promise.all(summaryPromises);
+        
+        // Add summaries to the processed chunks
+        processedChunks.forEach((chunk, index) => {
+          if (summaries[index]) {
+            chunk.summary = summaries[index];
+          }
+        });
+      } catch (summaryError) {
+        console.error("Error generating summaries:", summaryError);
+        // Continue without summaries if there was an error
+      }
       
       return res.json({ chunks: processedChunks });
     } catch (error: any) {
@@ -218,7 +235,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Adapt chunk based on performance
+  // Generate a summary for a chunk
+  app.post("/api/generate-summary", async (req, res) => {
+    try {
+      const { text } = req.body;
+      
+      if (!text || typeof text !== "string") {
+        return res.status(400).json({ message: "Text is required" });
+      }
+      
+      if (text.trim().length === 0) {
+        return res.status(400).json({ message: "Text cannot be empty" });
+      }
+      
+      // Generate a summary
+      const summary = await generateSummary(text);
+      
+      return res.json({ summary });
+    } catch (error: any) {
+      console.error("Error generating summary:", error);
+      return res.status(500).json({ 
+        message: "Failed to generate summary", 
+        error: error.message 
+      });
+    }
+  });
+  
   app.post("/api/adapt-chunk", async (req, res) => {
     try {
       const { chunkId, text, rating } = req.body;
