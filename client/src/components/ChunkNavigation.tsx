@@ -52,7 +52,7 @@ export function ChunkNavigation() {
         <nav className="divide-y divide-gray-200 overflow-y-auto max-h-96">
           {chunks.map((chunk, index) => {
             const isActive = index === activeChunkIndex;
-            const isCompleted = index < activeChunkIndex;
+            const isCompleted = chunk.status === "completed";
             const isPending = index > activeChunkIndex;
             
             return (

@@ -229,7 +229,15 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
           performance: calculatePerformance(prev.performance, feedback.rating, Object.keys(prev.feedback).length)
         };
         
-        // If this is the last chunk, mark as complete
+        // Update the current chunk status to completed
+        updatedSession.chunks = prev.chunks.map((chunk, index) => {
+          if (index === prev.activeChunkIndex) {
+            return { ...chunk, status: "completed" };
+          }
+          return chunk;
+        });
+        
+        // If this is the last chunk, mark the session as complete
         if (prev.activeChunkIndex === prev.chunks.length - 1) {
           updatedSession.status = "complete";
         }
@@ -400,22 +408,39 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
     const prevIndex = session.activeChunkIndex - 1;
     if (prevIndex < 0) return;
     
-    // Set the active index first for immediate UI feedback
+    // Check if the previous chunk is completed
+    const prevChunk = session.chunks[prevIndex];
+    if (prevChunk.status === "completed") {
+      console.log("Cannot navigate to completed chunk:", prevIndex);
+      toast({
+        title: "Navigation Restricted",
+        description: "You cannot return to completed chunks. Please continue with your current chunk.",
+        variant: "warning"
+      });
+      return;
+    }
+    
+    // Set the active index
     setSession(prev => ({ ...prev, activeChunkIndex: prevIndex }));
     
     // Then load questions for the previous chunk if needed
-    const prevChunk = session.chunks[prevIndex];
     await loadQuestionsForChunk(prevChunk.id, prevChunk.text);
   };
   
   const setActiveChunkIndex = async (index: number) => {
     if (index < 0 || index >= session.chunks.length) return;
     
-    // Set the active index first for immediate UI feedback
+    // Check if the selected chunk is completed
+    const selectedChunk = session.chunks[index];
+    if (selectedChunk.status === "completed") {
+      console.log("Cannot navigate to completed chunk:", index);
+      return;
+    }
+    
+    // Set the active index
     setSession(prev => ({ ...prev, activeChunkIndex: index }));
     
     // Then load questions for the selected chunk if needed
-    const selectedChunk = session.chunks[index];
     await loadQuestionsForChunk(selectedChunk.id, selectedChunk.text);
   };
 
