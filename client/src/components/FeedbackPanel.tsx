@@ -35,12 +35,16 @@ export function FeedbackPanel({ feedback, onContinue }: FeedbackPanelProps) {
             <div className="ml-3 flex-1">
               <h3 className="text-sm font-medium text-gray-900">Performance Analysis</h3>
               
-              {/* Lexile Score Change (if available) */}
+              {/* Lexile Score Summary */}
               {feedback.elo_update && (
-                <div className="mt-2 mb-3 py-2 px-3 bg-primary-50 rounded-lg border border-primary-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Lexile Score Change:</span>
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                <div className="mt-4 mb-3 py-3 px-4 bg-primary-50 rounded-lg border border-primary-100">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-2">Lexile Score Summary</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="text-xs text-gray-600">Previous:</span>
+                      <span className="ml-1 font-medium text-gray-800">{feedback.elo_update.previousRating}L</span>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       feedback.elo_update.change > 0 
                         ? 'bg-green-100 text-green-800' 
                         : feedback.elo_update.change < 0 
@@ -48,15 +52,14 @@ export function FeedbackPanel({ feedback, onContinue }: FeedbackPanelProps) {
                           : 'bg-gray-100 text-gray-800'
                     }`}>
                       {feedback.elo_update.change > 0 ? '+' : ''}{feedback.elo_update.change}L
-                    </span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-600">New:</span>
+                      <span className="ml-1 font-medium text-gray-800">{feedback.elo_update.newRating}L</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between mt-1 text-xs text-gray-600">
-                    <span>Previous: {feedback.elo_update.previousRating}L</span>
-                    <span>→</span>
-                    <span>New: {feedback.elo_update.newRating}L</span>
-                  </div>
-                  <div className="mt-1 text-center">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary-100 text-primary-800">
+                  <div className="mt-2 text-center">
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
                       Reading Level: {feedback.elo_update.readingLevel}
                     </span>
                   </div>
