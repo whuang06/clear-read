@@ -545,6 +545,107 @@ export async function adaptChunk(
       };
     }
     
+    // DIRECT APPROACH: If rating is negative, force simplification immediately
+    // Skip the Python script entirely for this condition to eliminate all possible errors
+    if (rating < 0) {
+      console.log(`*** DIRECT SIMPLIFICATION: Negative rating (${rating}) detected, forcing 20% simplification ***`);
+      
+      // Calculate simplification level based on how negative the rating is
+      let simplificationFactor = 0.2; // Default to 20% for negative ratings
+      
+      if (rating <= -150) {
+        simplificationFactor = 0.4; // 40% for very negative ratings
+      } else if (rating <= -100) {
+        simplificationFactor = 0.3; // 30% for quite negative ratings
+      }
+      
+      // Only use Python for the actual text simplification
+      try {
+        const tempScriptPath = path.join(SCRIPTS_DIR, "temp_simplifier.py");
+        const simplifierScript = `
+import json
+import sys
+import os
+import traceback
+
+try:
+    # Ensure the current directory is in the Python path
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, script_dir)
+    
+    from adaptive_reader import AdaptiveReader
+    
+    # Parse arguments from JSON file
+    with open(sys.argv[1], 'r') as f:
+        args = json.loads(f.read())
+    text = args.get("text", "")
+    factor = args.get("factor", 0.2)
+    
+    print(f"*** SIMPLIFIER: Text length {len(text)}, factor {factor} ***")
+    
+    # Create reader and simplify directly
+    reader = AdaptiveReader()
+    simplified = reader.simplify_chunk(text, factor)
+    
+    # Output simplified text
+    result = {"simplified_text": simplified}
+    print(json.dumps(result))
+except Exception as e:
+    print(json.dumps({
+        "error": str(e),
+        "traceback": traceback.format_exc()
+    }))
+    sys.exit(1)
+`;
+
+        // Write the temp script
+        fs.writeFileSync(tempScriptPath, simplifierScript);
+        
+        try {
+          // Call the simple script
+          const simplifyOutput = await execPythonScript(tempScriptPath, {
+            text,
+            factor: simplificationFactor
+          });
+          
+          // Parse the simplified text
+          const simplifyResult = JSON.parse(simplifyOutput);
+          
+          if (simplifyResult.error) {
+            throw new Error(simplifyResult.error);
+          }
+          
+          // Update reader state with our forced values
+          readerState.lastSimplified = true;
+          readerState.lastFactor = simplificationFactor;
+          readerState.updatePerformance(rating);
+          
+          // Show debug info
+          console.log(`*** DIRECT SIMPLIFICATION: Done with factor ${simplificationFactor} ***`);
+          console.log(`*** ORIGINAL: "${text.substring(0, 30)}..." ***`);
+          console.log(`*** SIMPLIFIED: "${simplifyResult.simplified_text.substring(0, 30)}..." ***`);
+          
+          // Return the result with our direct values
+          return {
+            simplifiedText: simplifyResult.simplified_text,
+            factor: simplificationFactor
+          };
+        } finally {
+          // Clean up
+          if (fs.existsSync(tempScriptPath)) {
+            fs.unlinkSync(tempScriptPath);
+          }
+        }
+      } catch (simplifierError) {
+        console.error("Error in direct simplification:", simplifierError);
+        // If simplification fails, return original text
+        return {
+          simplifiedText: text,
+          factor: 0
+        };
+      }
+    }
+    
     // Update performance with the user's rating from previous chunk
     readerState.updatePerformance(rating);
     console.log(`AdaptiveReader state - Performance: ${readerState.performance.toFixed(2)}, ChunksSeen: ${readerState.chunksSeen}`);
@@ -574,9 +675,6 @@ try:
     last_simplified = args.get("last_simplified", False)
     last_factor = args.get("last_factor", 0.0)
     
-    # Direct debug at entry point
-    print(f"CRITICAL DEBUG: Got rating={rating}, performance={performance}, last_simplified={last_simplified}, last_factor={last_factor}")
-
     # Create adaptive reader with persisted state
     reader = AdaptiveReader(performance)
     reader.last_simplified = last_simplified
@@ -585,59 +683,26 @@ try:
     # Assess difficulty of the current chunk
     difficulty = rate_chunk_difficulty(text)
     
-    # IMPROVED ADAPTIVE ALGORITHM WITH MORE AGGRESSIVE SIMPLIFICATION FOR POOR PERFORMANCE
-    
-    # Only allow fixed simplification levels: 0%, 10%, 20%, 30%, 40%, 50%, 60%, 70%
-    # First chunk: use original
-    if not last_simplified and last_factor == 0.0:
-        # First chunk is always shown in original form
-        # Don't print anything that isn't JSON
-        simplified_text = text
-        factor = 0.0
-        is_simplified = False
-    
-    # Important change: For any negative ratings, we always simplify the next chunk
-    # regardless of its difficulty level - make very aggressive
-    elif rating < 0:
-        # Get the simplification level based on the poor performance
-        current_level = last_factor if last_simplified else 0.0
-        target_level = reader.get_simplification_level(current_level, rating)
-        
-        # Apply safety limits
-        factor = min(0.7, max(0, target_level))
-        
-        # Round to nearest 10%
-        factor = round(factor * 10) / 10
-        
-        # Apply simplification (factor is guaranteed to be at least 0.1 due to the algorithm)
-        simplified_text = reader.simplify_chunk(text, factor)
-        is_simplified = True
-        
-    # Normal case: compare performance to difficulty
-    elif difficulty is not None and (performance < difficulty or last_simplified):
+    # Compare performance to difficulty
+    if difficulty is not None and (performance < difficulty or last_simplified):
         # Determine the appropriate simplification level based on performance
-        # Limit changes to maximum of 20% between chunks
         current_level = last_factor if last_simplified else 0.0
         target_level = reader.get_simplification_level(current_level, performance)
         
         # Fixed limit to prevent over-simplification
         factor = min(0.7, target_level)
+        factor = max(0.0, factor)
         
-        # Safety check
-        if factor < 0 or factor > 0.7:
-            factor = min(0.7, max(0, factor))
-            
         # Round to nearest 10%
         factor = round(factor * 10) / 10
         
-        # Apply simplification
+        # Apply simplification if needed
         if factor > 0:
             simplified_text = reader.simplify_chunk(text, factor)
             is_simplified = True
         else:
             simplified_text = text
             is_simplified = False
-            
     else:
         # No simplification needed
         simplified_text = text
