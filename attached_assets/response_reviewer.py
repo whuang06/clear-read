@@ -21,9 +21,28 @@ def review_responses(
     """
     Sends the text chunk, questions, and their responses to Gemini 2.0 Flash.
     Returns a dict with keys: 'review' (str) and 'rating' (int).
+    
+    NEW: Automatically gives very negative ratings for very short answers
+    without even sending to the API.
     """
     if len(questions) != len(responses):
         raise ValueError("Questions and responses lists must be the same length")
+    
+    # Check for very short responses - automatically give negative ratings
+    # This is to ensure we always simplify after poor answers
+    all_responses_text = " ".join(responses)
+    if all_responses_text.strip().lower() in ["no", "yes", "idk", "not sure", "n/a"]:
+        return {
+            "review": "Your answers are too short and don't demonstrate understanding. Please provide more detailed answers.",
+            "rating": -150
+        }
+    
+    # Check for very short responses (less than 5 words total across all responses)
+    if len(all_responses_text.split()) < 5:
+        return {
+            "review": "Your answers are too brief. Please explain your understanding in more detail.",
+            "rating": -100
+        }
 
     # Build prompt
     prompt = [chunk, "\n"]
@@ -31,7 +50,11 @@ def review_responses(
         prompt.append(f"Question {idx}: {q}\nResponse: {r}\n")
     prompt.append(
         "\nGenerate a JSON object with two keys: 'review' (a short evaluation message for the learner) "
-        "and 'rating' (integer between -200 and 200; positive for correct, negative for misunderstanding, 0 neutral). "
+        "and 'rating' (integer between -200 and 200). IMPORTANT RATING GUIDELINES:\n"
+        "- For complete, accurate answers: rate 50 to 200 (higher for exceptional answers)\n"
+        "- For partially correct but incomplete answers: rate -50 to 50\n"
+        "- For very short, clearly incorrect, or minimal effort answers (like one-word responses): rate -200 to -100\n"
+        "- BE VERY STRICT with short, low-effort answers - they should get strongly negative ratings\n"
         "Respond with only the JSON object."
     )
     prompt_text = "".join(prompt)

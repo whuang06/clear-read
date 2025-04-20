@@ -588,21 +588,17 @@ try:
     # First chunk: use original
     if not last_simplified and last_factor == 0.0:
         # First chunk is always shown in original form
-        print("First chunk - using original text")
+        # Don't print anything that isn't JSON
         simplified_text = text
         factor = 0.0
         is_simplified = False
     
-    # Important change: For poor ratings (below -50), we always simplify the next chunk
-    # regardless of its difficulty level
-    elif rating <= -50:
-        print(f"Poor previous rating ({rating}): forcing simplification for next chunk")
-        
+    # Important change: For any negative ratings, we always simplify the next chunk
+    # regardless of its difficulty level - make very aggressive
+    elif rating < 0:
         # Get the simplification level based on the poor performance
         current_level = last_factor if last_simplified else 0.0
         target_level = reader.get_simplification_level(current_level, rating)
-        
-        print(f"Forced simplification due to poor rating. Current: {int(current_level * 100)}%, Target: {int(target_level * 100)}%")
         
         # Apply safety limits
         factor = min(0.7, max(0, target_level))
@@ -621,15 +617,11 @@ try:
         current_level = last_factor if last_simplified else 0.0
         target_level = reader.get_simplification_level(current_level, performance)
         
-        print(f"Simplification decision: perf={performance:.2f} diff={difficulty}")
-        print(f"Using simplification level: {int(target_level * 100)}%")
-        
         # Fixed limit to prevent over-simplification
         factor = min(0.7, target_level)
         
         # Safety check
         if factor < 0 or factor > 0.7:
-            print(f"WARNING: Invalid factor {factor}, fixing to valid value")
             factor = min(0.7, max(0, factor))
             
         # Round to nearest 10%
@@ -648,7 +640,6 @@ try:
         simplified_text = text
         factor = 0.0
         is_simplified = False
-        print("No simplification needed - using original text")
     
     # Output JSON with results
     result = {
