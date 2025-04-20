@@ -62,11 +62,19 @@ class AdaptiveReader:
     def simplify_chunk(self, text: str, factor: float) -> str:
         """
         Uses Gemini to simplify the text by given factor (0-1) preserving length and nuances.
+        Factor is capped at 0.7 (70%) to prevent over-simplification.
         """
+        # Safety check to prevent over-simplification
+        factor = min(0.7, max(0.1, factor))
+        
+        # Round to nearest 10%
+        factor = round(factor * 10) / 10
         percent = int(factor * 100)
+        
         prompt = (
-            f"Simplify the following text by {percent}% while preserving its length and nuances."
-            f" Return only the simplified text.\n\n{text}"
+            f"Simplify the following text by exactly {percent}% while preserving its length, key details, and contextual meaning."
+            f" Simplify vocabulary and sentence structure, but maintain the same information content."
+            f" Return only the simplified text with no additional commentary.\n\n{text}"
         )
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],

@@ -582,67 +582,78 @@ try:
     # Assess difficulty of the current chunk
     difficulty = rate_chunk_difficulty(text)
     
-    # Determine if we need to simplify based on performance vs. difficulty
+    # COMPLETELY REWRITTEN SIMPLIFICATION ALGORITHM
+    
+    # Step 1: Calculate base simplification only if performance < difficulty
     if difficulty is not None and performance < difficulty:
-        # Calculate simplification factor based on performance gap
-        # More gradual progression - making this more subtle
-        # Cap at 0.75 so it never goes to 100%
-        raw_factor = (difficulty - performance) / difficulty
+        # Calculate raw factor (capped at 0.7 maximum)
+        raw_factor = min(0.7, (difficulty - performance) / difficulty)
         
-        # Calculate the base factor from performance gap
-        # Ensure raw_factor is between 0 and 0.7
-        raw_factor = max(0, min(0.7, raw_factor))  # Cap at 0.7 to avoid too much simplification
+        # Always ensure raw_factor is between 0 and 0.7
+        raw_factor = max(0, min(0.7, raw_factor))
         
-        # Round to nearest 10%
-        factor = round(raw_factor * 10) / 10
+        # Set minimum simplification to 0.1 (10%) if any simplification is needed
+        raw_factor = max(0.1, raw_factor)
         
-        # Ensure factor is at least 0.1 (10%) if any simplification is needed
-        factor = max(0.1, factor)
-        
-        # Limit the change from previous simplification to 20% max
+        # Step 2: Handle the case when we have previous simplification
         if last_simplified:
             # Get previous factor as baseline
             prev_factor = last_factor
             
-            # Limit factor to be at most 0.2 (20%) different from previous
-            if factor > prev_factor + 0.2:
-                factor = prev_factor + 0.2
-            elif factor < prev_factor - 0.2:
-                factor = prev_factor - 0.2
-                
-            # Round again to nearest 10%
-            factor = round(factor * 10) / 10
+            print(f"Previous factor: {prev_factor}, New raw factor: {raw_factor}")
+            
+            # Limit change to at most 0.2 (20%) from previous factor
+            if raw_factor > prev_factor + 0.2:
+                raw_factor = prev_factor + 0.2
+                print(f"Capping increase to +20%: {raw_factor}")
+            elif raw_factor < prev_factor - 0.2:
+                raw_factor = prev_factor - 0.2
+                print(f"Capping decrease to -20%: {raw_factor}")
         
-        # Hard cap at 0.7 (70%) as the maximum simplification
+        # Step 3: Round to nearest 10%
+        factor = round(raw_factor * 10) / 10
+        
+        # Double check the max cap at 0.7 (70%)
         factor = min(0.7, factor)
         
+        # Additional safety check - ensure factor is reasonable
+        if factor < 0 or factor > 0.7:
+            print(f"WARNING: Factor out of bounds: {factor}, fixing to safe value")
+            factor = max(0, min(0.7, factor))
+        
+        print(f"Final simplification factor: {factor}")
         simplified_text = reader.simplify_chunk(text, factor)
         is_simplified = True
+        
+    # Step 4: Handle when performance >= difficulty but we simplified previously
     elif last_simplified:
-        # Continue simplifying with previous factor if we simplified the last chunk
-        # Adjust by 10% increments based on performance trend
+        # Continue simplifying but adjust based on performance
         if performance > 0:  # Performance is improving
             # Reduce simplification by 10%
-            adjusted_factor = max(0, last_factor - 0.1)
+            raw_factor = max(0, last_factor - 0.1)
         else:  # Performance is still negative
-            # Increase simplification by 10% if performance is very negative
+            # Keep same factor or slightly increase if performance is very poor
+            raw_factor = last_factor
             if performance < -100:
-                # Limit the increase to 20% maximum
-                adjusted_factor = min(0.7, last_factor + 0.1)
-            else:
-                adjusted_factor = last_factor
-            
-        # Round to nearest 10%
-        adjusted_factor = round(adjusted_factor * 10) / 10
+                # Add 10% but observe 20% max change and 70% absolute max
+                raw_factor = min(0.7, last_factor + 0.1)
         
-        simplified_text = reader.simplify_chunk(text, adjusted_factor)
-        factor = adjusted_factor
+        # Round to nearest 10%
+        factor = round(raw_factor * 10) / 10
+        
+        # Safety check - ensure factor is reasonable
+        factor = max(0, min(0.7, factor))
+        
+        print(f"Continuing with adjusted factor: {factor}")
+        simplified_text = reader.simplify_chunk(text, factor)
         is_simplified = factor > 0
+        
+    # Step 5: No simplification needed
     else:
-        # Use original text
         simplified_text = text
         factor = 0.0
         is_simplified = False
+        print("No simplification needed")
     
     # Output JSON with results
     result = {
