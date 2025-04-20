@@ -16,6 +16,16 @@ export function CompletionReport() {
   const averageRating = performance || 0;
   const normalizedScore = Math.round(((averageRating + 200) / 400) * 100); // Convert from -200 to 200 scale to 0-100
   
+  // Get the last feedback with ELO update data
+  const feedbackEntries = Object.entries(feedback);
+  const lastFeedbackWithElo = feedbackEntries
+    .filter(([_, f]) => f.elo_update)
+    .sort(([idA], [idB]) => {
+      // Sort by chunk ID in descending order (most recent first)
+      return parseInt(idB) - parseInt(idA);
+    })
+    .map(([_, f]) => f)[0];
+  
   // Format as a letter grade
   const getGrade = (score: number): string => {
     if (score >= 90) return "A";
@@ -140,6 +150,50 @@ export function CompletionReport() {
               <p className="text-gray-600 italic">
                 To improve your comprehension, focus on reading more carefully and answering questions with specific details from the text.
               </p>
+            )}
+            
+            {/* ELO Rating Change */}
+            {lastFeedbackWithElo && lastFeedbackWithElo.elo_update && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <h4 className="text-md font-medium text-gray-800 mb-2 flex items-center">
+                  <BarChart4 className="h-5 w-5 mr-2 text-primary" />
+                  Reading Level Progress
+                </h4>
+                <div className="flex items-center justify-between bg-primary-50 p-3 rounded-lg">
+                  <div className="flex flex-col">
+                    <span className="text-sm text-gray-600">Previous Rating</span>
+                    <span className="text-xl font-semibold text-gray-800">
+                      {lastFeedbackWithElo.elo_update.previousRating}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center px-3">
+                    <div className={`px-2 py-1 rounded text-sm font-semibold ${
+                      lastFeedbackWithElo.elo_update.change > 0 
+                        ? 'bg-green-100 text-green-800' 
+                        : lastFeedbackWithElo.elo_update.change < 0 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {lastFeedbackWithElo.elo_update.change > 0 ? '+' : ''}
+                      {lastFeedbackWithElo.elo_update.change}
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-end">
+                    <span className="text-sm text-gray-600">New Rating</span>
+                    <span className="text-xl font-semibold text-gray-800">
+                      {lastFeedbackWithElo.elo_update.newRating}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="mt-2 text-center">
+                  <span className="text-sm font-medium px-3 py-1 rounded-full bg-primary-100 text-primary-800">
+                    Reading Level: {lastFeedbackWithElo.elo_update.readingLevel}
+                  </span>
+                </div>
+              </div>
             )}
           </div>
           
