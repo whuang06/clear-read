@@ -582,7 +582,7 @@ try:
     # Assess difficulty of the current chunk
     difficulty = rate_chunk_difficulty(text)
     
-    # FIXED ADAPTIVE ALGORITHM USING ONLY PREDEFINED SIMPLIFICATION LEVELS
+    # IMPROVED ADAPTIVE ALGORITHM WITH MORE AGGRESSIVE SIMPLIFICATION FOR POOR PERFORMANCE
     
     # Only allow fixed simplification levels: 0%, 10%, 20%, 30%, 40%, 50%, 60%, 70%
     # First chunk: use original
@@ -592,7 +592,29 @@ try:
         simplified_text = text
         factor = 0.0
         is_simplified = False
+    
+    # Important change: For poor ratings (below -50), we always simplify the next chunk
+    # regardless of its difficulty level
+    elif rating <= -50:
+        print(f"Poor previous rating ({rating}): forcing simplification for next chunk")
         
+        # Get the simplification level based on the poor performance
+        current_level = last_factor if last_simplified else 0.0
+        target_level = reader.get_simplification_level(current_level, rating)
+        
+        print(f"Forced simplification due to poor rating. Current: {int(current_level * 100)}%, Target: {int(target_level * 100)}%")
+        
+        # Apply safety limits
+        factor = min(0.7, max(0, target_level))
+        
+        # Round to nearest 10%
+        factor = round(factor * 10) / 10
+        
+        # Apply simplification (factor is guaranteed to be at least 0.1 due to the algorithm)
+        simplified_text = reader.simplify_chunk(text, factor)
+        is_simplified = True
+        
+    # Normal case: compare performance to difficulty
     elif difficulty is not None and (performance < difficulty or last_simplified):
         # Determine the appropriate simplification level based on performance
         # Limit changes to maximum of 20% between chunks

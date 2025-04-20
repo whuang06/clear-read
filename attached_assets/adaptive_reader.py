@@ -41,23 +41,37 @@ class AdaptiveReader:
         Get the appropriate simplification level based on performance.
         Only returns values from the fixed list of simplification levels.
         Changes are limited to 20% maximum between chunks.
+        More aggressive simplification for poor performance.
         """
-        # Determine direction of change
+        logger.info(f"Determining simplification level - current level: {current_level}, performance: {performance}")
+        
+        # Determine direction of change - make more aggressive for negative performance
         if performance > 100:  # Very good performance
             # Reduce simplification by 10-20%
             adjustment = -0.2
+            logger.info("Very good performance: reducing simplification by 20%")
         elif performance > 0:  # Good performance
             # Reduce simplification by 10%
             adjustment = -0.1
-        elif performance > -100:  # Moderately poor performance
+            logger.info("Good performance: reducing simplification by 10%")
+        elif performance > -50:  # Slightly poor performance
             # Increase simplification by 10%
             adjustment = 0.1
-        else:  # Very poor performance
-            # Increase simplification by 10-20%
+            logger.info("Slightly poor performance: increasing simplification by 10%")
+        elif performance > -100:  # Poor performance
+            # Increase simplification by 20%
             adjustment = 0.2
+            logger.info("Poor performance: increasing simplification by 20%")
+        else:  # Very poor performance
+            # Increase simplification by 30% (will be capped to max 20% change)
+            adjustment = 0.3
+            logger.info("Very poor performance: increasing simplification by 30% (will be capped)")
             
         # Calculate target level (but don't apply yet)
         target_level = current_level + adjustment
+        
+        # Ensure we don't go below 0 or above 0.7
+        target_level = max(0.0, min(0.7, target_level))
         
         # Find the closest allowed level in our fixed list
         # that doesn't exceed 20% change from current level
@@ -92,7 +106,11 @@ class AdaptiveReader:
         logger.info(f"Simplifying text at {percent}% level")
         
         prompt = (
-            f"Simplify this text to make it {percent}% easier to read. Keep the meaning the same, but use simpler words and shorter sentences.\n\n"
+            f"Simplify this text to make it {percent}% easier to read. Maintain the core meaning but:\n"
+            f"- Use simpler vocabulary appropriate for someone with {100-percent}% of college reading ability\n"
+            f"- Create shorter sentences with clearer structure\n"
+            f"- Simplify complex concepts but preserve all key information\n"
+            f"- The degree of simplification should be EXACTLY {percent}%\n\n"
             f"TEXT: {text}\n\n"
             f"SIMPLIFIED ({percent}%):"
         )
