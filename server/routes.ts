@@ -241,6 +241,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If factor is 0, text wasn't simplified
       const isSimplified = factor > 0;
       
+      console.log(`[ROUTE DEBUG] Simplification factor: ${factor}, isSimplified: ${isSimplified}`);
+      console.log(`[ROUTE DEBUG] Original text preview: "${text.substring(0, 30)}..."`);
+      console.log(`[ROUTE DEBUG] Text after adaptation: "${simplifiedText.substring(0, 30)}..."`);
+      
       // Assess difficulty of simplified text if it was changed
       let newDifficulty = originalDifficulty;
       if (isSimplified && simplifiedText !== text) {

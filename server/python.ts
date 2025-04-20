@@ -689,7 +689,9 @@ except Exception as e:
         readerState.lastSimplified = parsedOutput.is_simplified;
         readerState.lastFactor = parsedOutput.factor;
         
-        console.log(`Chunk difficulty: ${parsedOutput.difficulty}, Performance: ${readerState.performance}, Simplification: ${parsedOutput.is_simplified ? 'yes' : 'no'} (factor: ${parsedOutput.factor.toFixed(2)})`);
+        console.log(`[ADAPT DEBUG] Chunk difficulty: ${parsedOutput.difficulty}, Performance: ${readerState.performance}, Simplification: ${parsedOutput.is_simplified ? 'yes' : 'no'} (factor: ${parsedOutput.factor.toFixed(2)})`);
+        console.log(`[ADAPT DEBUG] Original text preview: "${text.substring(0, 30)}..."`);
+        console.log(`[ADAPT DEBUG] Simplified text preview: "${parsedOutput.simplified_text.substring(0, 30)}..."`);
         
         return {
           simplifiedText: parsedOutput.simplified_text,

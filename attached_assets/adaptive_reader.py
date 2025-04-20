@@ -126,10 +126,16 @@ class AdaptiveReader:
         }
         
         try:
+            # Log what we're about to do
+            logger.info(f"Sending simplification request to Gemini API with {percent}% simplification")
+            logger.info(f"Original text (30 chars): {text[:30]}...")
+            
             resp = requests.post(API_URL, headers={"Content-Type": "application/json"}, json=payload)
             resp.raise_for_status()
             
             data = resp.json()
+            logger.info(f"Received API response: {str(data)[:500]}...")  # Log first 500 chars of response
+            
             if "candidates" in data and len(data["candidates"]) > 0:
                 candidate = data["candidates"][0]
                 if "content" in candidate:
@@ -138,6 +144,8 @@ class AdaptiveReader:
                     # Clean up any formatting artifacts
                     simplified = simplified.strip()
                     simplified = simplified.replace("SIMPLIFIED:", "").strip()
+                    
+                    logger.info(f"Successfully simplified text. Result (30 chars): {simplified[:30]}...")
                     return simplified
             
             logger.error(f"Unexpected API response format: {data}")
