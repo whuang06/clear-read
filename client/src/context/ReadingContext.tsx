@@ -415,7 +415,7 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Navigation Restricted",
         description: "You cannot return to completed chunks. Please continue with your current chunk.",
-        variant: "warning"
+        variant: "destructive"
       });
       return;
     }
@@ -434,6 +434,11 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
     const selectedChunk = session.chunks[index];
     if (selectedChunk.status === "completed") {
       console.log("Cannot navigate to completed chunk:", index);
+      toast({
+        title: "Navigation Restricted",
+        description: "You cannot return to completed chunks. Please continue with your current chunk.",
+        variant: "destructive"
+      });
       return;
     }
     
