@@ -220,7 +220,7 @@ export async function updateDailyProgress(userId: number): Promise<void> {
       // Create new progress record
       await db.insert(userProgress)
         .values({
-          user_id: userId,
+          userId: userId,
           date: today,
           elo_rating: user.elo_rating,
           sessions_completed: completedSessions ? Number(completedSessions) : 0,

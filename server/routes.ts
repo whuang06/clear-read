@@ -14,6 +14,20 @@ import {
   adaptChunk,
   generateSummary
 } from "./python";
+import { updateUserElo, updateSessionProgress, updateDailyProgress, getUserProgressHistory } from "./progress";
+import { getReadingLevel } from "./elo";
+
+// Extended feedback interface to support ELO updates
+interface Feedback {
+  review: string;
+  rating: number;
+  elo_update?: {
+    previousRating: number;
+    newRating: number;
+    change: number;
+    readingLevel: string;
+  };
+}
 
 // Get the directory name properly in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -227,10 +241,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Review user responses
+  // Review user responses and update ELO rating
   app.post("/api/review-responses", async (req, res) => {
     try {
-      const { chunkId, text, questions, responses } = req.body;
+      const { chunkId, text, questions, responses, userId, sessionId, difficulty } = req.body;
       
       if (!chunkId || !text || !questions || !responses) {
         return res.status(400).json({ 
@@ -248,7 +262,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const questionTexts = questions.map(q => typeof q === 'string' ? q : q.text);
       const responseTexts = responses.map(r => typeof r === 'string' ? r : r.response);
       
-      const feedback = await reviewResponses(text, questionTexts, responseTexts);
+      // Get the feedback from the AI
+      let feedback = await reviewResponses(text, questionTexts, responseTexts);
+      
+      // Convert to mutable object if needed
+      feedback = { ...feedback };
+      
+      // If we have user, session ID, and difficulty, update ELO rating and progress
+      let eloUpdate = null;
+      if (userId && sessionId && difficulty && typeof feedback.rating === 'number') {
+        try {
+          // Update user's ELO rating based on performance
+          eloUpdate = await updateUserElo(
+            userId, 
+            chunkId, 
+            feedback.rating, 
+            difficulty
+          );
+          
+          // Update session progress
+          await updateSessionProgress(sessionId, userId, chunkId);
+          
+          // Update daily progress tracking
+          await updateDailyProgress(userId);
+          
+          // Get the reading level based on new ELO
+          const readingLevel = getReadingLevel(eloUpdate.newRating);
+          
+          // Add ELO data to response
+          feedback.elo_update = {
+            previousRating: eloUpdate.newRating - eloUpdate.ratingChange,
+            newRating: eloUpdate.newRating,
+            change: eloUpdate.ratingChange,
+            readingLevel
+          };
+          
+          console.log(`Updated ELO for user ${userId}: ${eloUpdate.newRating} (${eloUpdate.ratingChange > 0 ? '+' : ''}${eloUpdate.ratingChange})`);
+        } catch (eloError) {
+          console.error("Error updating ELO rating:", eloError);
+          // Continue even if ELO update fails
+        }
+      }
       
       return res.json({ feedback });
     } catch (error: any) {
@@ -407,6 +461,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint to get user progress history
+  app.get("/api/user-progress/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const days = req.query.days ? parseInt(req.query.days as string) : 30;
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Get the user first to ensure they exist
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get user reading level based on ELO
+      const readingLevel = getReadingLevel(user.elo_rating);
+      
+      // Get user's progress history
+      const progressHistory = await getUserProgressHistory(userId, days);
+      
+      return res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          elo_rating: user.elo_rating,
+          reading_level: readingLevel,
+          created_at: user.created_at
+        },
+        progress_history: progressHistory
+      });
+    } catch (error: any) {
+      console.error("Error getting user progress:", error);
+      return res.status(500).json({ 
+        message: "Failed to get user progress", 
+        error: error.message 
+      });
+    }
+  });
+  
   const httpServer = createServer(app);
 
   return httpServer;
