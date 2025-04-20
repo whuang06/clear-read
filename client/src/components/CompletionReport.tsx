@@ -18,7 +18,7 @@ export function CompletionReport() {
   
   // Get the last feedback with Lexile score update data
   const feedbackEntries = Object.entries(feedback);
-  const lastFeedbackWithElo = feedbackEntries
+  const lastFeedbackWithLexile = feedbackEntries
     .filter(([_, f]) => f.elo_update)
     .sort(([idA], [idB]) => {
       // Sort by chunk ID in descending order (most recent first)
@@ -153,7 +153,7 @@ export function CompletionReport() {
             )}
             
             {/* Lexile Score Change */}
-            {lastFeedbackWithElo && lastFeedbackWithElo.elo_update && (
+            {lastFeedbackWithLexile && lastFeedbackWithLexile.elo_update && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <h4 className="text-md font-medium text-gray-800 mb-2 flex items-center">
                   <BarChart4 className="h-5 w-5 mr-2 text-primary" />
@@ -163,34 +163,34 @@ export function CompletionReport() {
                   <div className="flex flex-col">
                     <span className="text-sm text-gray-600">Previous Lexile</span>
                     <span className="text-xl font-semibold text-gray-800">
-                      {lastFeedbackWithElo.elo_update.previousRating}L
+                      {lastFeedbackWithLexile.elo_update.previousRating}L
                     </span>
                   </div>
                   
                   <div className="flex items-center px-3">
                     <div className={`px-2 py-1 rounded text-sm font-semibold ${
-                      lastFeedbackWithElo.elo_update.change > 0 
+                      lastFeedbackWithLexile.elo_update.change > 0 
                         ? 'bg-green-100 text-green-800' 
-                        : lastFeedbackWithElo.elo_update.change < 0 
+                        : lastFeedbackWithLexile.elo_update.change < 0 
                           ? 'bg-red-100 text-red-800' 
                           : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {lastFeedbackWithElo.elo_update.change > 0 ? '+' : ''}
-                      {lastFeedbackWithElo.elo_update.change}L
+                      {lastFeedbackWithLexile.elo_update.change > 0 ? '+' : ''}
+                      {lastFeedbackWithLexile.elo_update.change}L
                     </div>
                   </div>
                   
                   <div className="flex flex-col items-end">
                     <span className="text-sm text-gray-600">New Lexile</span>
                     <span className="text-xl font-semibold text-gray-800">
-                      {lastFeedbackWithElo.elo_update.newRating}L
+                      {lastFeedbackWithLexile.elo_update.newRating}L
                     </span>
                   </div>
                 </div>
                 
                 <div className="mt-2 text-center">
                   <span className="text-sm font-medium px-3 py-1 rounded-full bg-primary-100 text-primary-800">
-                    Reading Level: {lastFeedbackWithElo.elo_update.readingLevel}
+                    Reading Level: {lastFeedbackWithLexile.elo_update.readingLevel}
                   </span>
                 </div>
               </div>
