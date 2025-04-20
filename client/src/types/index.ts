@@ -36,6 +36,12 @@ export interface UserResponse {
 export interface ReviewFeedback {
   review: string;
   rating: number;
+  elo_update?: {
+    previousRating: number;
+    newRating: number;
+    change: number;
+    readingLevel: string;
+  };
 }
 
 export interface PerformanceData {
