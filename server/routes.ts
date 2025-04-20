@@ -464,103 +464,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to generate demo progress history for a user
+  async function generateDemoProgressHistory(user: User): Promise<void> {
+    // Generate 90 days of sample progress data
+    const daysToGenerate = 90; // 3 months of data
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysToGenerate);
+    
+    console.log(`Generating ${daysToGenerate} days of progress history for user ${user.id}`);
+    
+    // Create and insert generated data entries
+    const progressEntries = [];
+    let currentElo = 1000; // Starting ELO
+    
+    for (let day = 0; day < daysToGenerate; day += 3) { // One entry every 3 days
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + day);
+      
+      // Generate a random ELO change pattern - more improvement in later months
+      let eloChange;
+      let chunksCompleted;
+      let avgDifficulty;
+      
+      if (day < 30) {
+        // First month - small improvements
+        eloChange = Math.floor(Math.random() * 30); // 0 to 30
+        chunksCompleted = Math.floor(Math.random() * 3) + 1; // 1-3 chunks
+        avgDifficulty = 800 + Math.floor(Math.random() * 400); // 800-1200
+      } else if (day < 60) {
+        // Second month - medium improvements
+        eloChange = Math.floor(Math.random() * 40 - 5); // -5 to 35
+        chunksCompleted = Math.floor(Math.random() * 5) + 2; // 2-6 chunks
+        avgDifficulty = 1000 + Math.floor(Math.random() * 400); // 1000-1400
+      } else {
+        // Third month - larger improvements
+        eloChange = Math.floor(Math.random() * 50 - 10); // -10 to 40
+        chunksCompleted = Math.floor(Math.random() * 6) + 3; // 3-8 chunks
+        avgDifficulty = 1100 + Math.floor(Math.random() * 500); // 1100-1600
+      }
+      
+      // Update current ELO rating
+      currentElo += eloChange;
+      currentElo = Math.max(800, Math.min(1700, currentElo)); // Keep within reasonable bounds
+      
+      // Create a progress entry
+      const entry = {
+        userId: user.id,
+        date,
+        elo_rating: currentElo,
+        sessions_completed: 1,
+        chunks_completed: chunksCompleted,
+        avg_performance: Math.floor((Math.random() * 100) + 50), // Random performance 50-150 (integer)
+        avg_difficulty: avgDifficulty
+      };
+      
+      // Insert directly to database
+      await db.insert(userProgress).values(entry);
+      progressEntries.push(entry);
+    }
+    
+    // Update user's final ELO
+    await db.update(users)
+      .set({ elo_rating: currentElo })
+      .where(eq(users.id, user.id));
+    
+    console.log(`Generated ${progressEntries.length} progress history records for user ${user.id}`);
+    console.log(`Updated user ELO rating to ${currentElo}`);
+  }
+
   // API endpoint to get user progress history
   app.get("/api/user-progress/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      let targetUserId = parseInt(req.params.userId);
       const days = req.query.days ? parseInt(req.query.days as string) : 30;
       
-      if (isNaN(userId)) {
+      if (isNaN(targetUserId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      // Get the user first to ensure they exist
-      let user = await storage.getUser(userId);
+      // Try to get the target user
+      let user = await storage.getUser(targetUserId);
       
-      // For demonstration purposes: Create a sample user with history if none exists
+      // If no user exists with the requested ID, provide demo data
       if (!user) {
-        console.log("Creating sample user for demo purposes...");
+        console.log("No user found with ID:", targetUserId);
         
-        // Insert a demo user
-        try {
-          user = await storage.createUser({
-            username: "reader1",
-            password: "demo123", // Demo password for sample user
-          });
-          
-          console.log(`Created demo user with ID: ${user.id}`);
-          
-          // Generate demo progress history
-          const daysToGenerate = 90; // 3 months
-          const startDate = new Date();
-          startDate.setDate(startDate.getDate() - daysToGenerate);
-          
-          // Create and insert generated data entries
-          const progressEntries = [];
-          let currentElo = 1000; // Starting ELO
-          
-          for (let day = 0; day < daysToGenerate; day += 3) { // One entry every 3 days
-            const date = new Date(startDate);
-            date.setDate(date.getDate() + day);
+        // First check if reader1 exists to use it
+        const demoUser = await storage.getUserByUsername("reader1");
+        
+        if (demoUser) {
+          console.log("Using existing demo user 'reader1'");
+          user = demoUser;
+          targetUserId = demoUser.id;
+        } else {
+          // Create a new demo user with a unique username
+          try {
+            const uniqueUsername = `reader_${Date.now()}`;
+            user = await storage.createUser({
+              username: uniqueUsername,
+              password: "demo123" // Demo password
+            });
             
-            // Generate a random ELO change pattern
-            // More improvement in later months
-            let eloChange;
-            let chunksCompleted;
-            let avgDifficulty;
-            
-            if (day < 30) {
-              // First month - small improvements
-              eloChange = Math.floor(Math.random() * 30); // 0 to 30
-              chunksCompleted = Math.floor(Math.random() * 3) + 1; // 1-3 chunks
-              avgDifficulty = 800 + Math.floor(Math.random() * 400); // 800-1200
-            } else if (day < 60) {
-              // Second month - medium improvements
-              eloChange = Math.floor(Math.random() * 40 - 5); // -5 to 35
-              chunksCompleted = Math.floor(Math.random() * 5) + 2; // 2-6 chunks
-              avgDifficulty = 1000 + Math.floor(Math.random() * 400); // 1000-1400
-            } else {
-              // Third month - larger improvements
-              eloChange = Math.floor(Math.random() * 50 - 10); // -10 to 40
-              chunksCompleted = Math.floor(Math.random() * 6) + 3; // 3-8 chunks
-              avgDifficulty = 1100 + Math.floor(Math.random() * 500); // 1100-1600
-            }
-            
-            // Update current ELO rating
-            currentElo += eloChange;
-            currentElo = Math.max(800, Math.min(1700, currentElo)); // Keep within reasonable bounds
-            
-            // Create a progress entry
-            const entry = {
-              userId: user.id,
-              date,
-              elo_rating: currentElo,
-              sessions_completed: 1,
-              chunks_completed: chunksCompleted,
-              avg_performance: Math.floor((Math.random() * 100) + 50), // Random performance 50-150 (integer)
-              avg_difficulty: avgDifficulty
-            };
-            
-            // Insert directly to database
-            await db.insert(userProgress).values(entry);
-            progressEntries.push(entry);
+            targetUserId = user.id;
+            console.log(`Created new demo user '${uniqueUsername}' with ID: ${targetUserId}`);
+          } catch (error: any) {
+            console.error("Failed to create demo user:", error);
+            return res.status(500).json({
+              message: "Failed to create demo user",
+              error: error.message
+            });
           }
+        }
+        
+        // Check if the demo user has progress data, if not generate it
+        const existingProgress = await db
+          .select()
+          .from(userProgress)
+          .where(eq(userProgress.userId, targetUserId))
+          .limit(1);
           
-          // Update user's final ELO
-          await db.update(users)
-            .set({ elo_rating: currentElo })
-            .where(eq(users.id, user.id));
-          
-          // Update our user object with the new ELO
-          user.elo_rating = currentElo;
-          
-          console.log(`Generated ${progressEntries.length} progress history records for demo`);
-        } catch (createError) {
-          console.error("Error creating demo user:", createError);
-          return res.status(500).json({ 
-            message: "Failed to create demo user", 
-            error: createError.message 
-          });
+        if (existingProgress.length === 0) {
+          console.log("Generating progress history for demo user");
+          try {
+            await generateDemoProgressHistory(user);
+            
+            // Refresh user data to get updated ELO
+            const updatedUser = await storage.getUser(targetUserId);
+            if (updatedUser) {
+              user = updatedUser;
+            }
+          } catch (error: any) {
+            console.error("Failed to generate progress history:", error);
+            return res.status(500).json({
+              message: "Failed to generate progress history",
+              error: error.message
+            });
+          }
+        } else {
+          console.log("Using existing progress history for demo user");
         }
       }
       
@@ -568,7 +609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const readingLevel = getReadingLevel(user.elo_rating);
       
       // Get user's progress history
-      const progressHistory = await getUserProgressHistory(userId, days);
+      const progressHistory = await getUserProgressHistory(targetUserId, days);
       
       return res.json({
         user: {

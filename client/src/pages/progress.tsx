@@ -48,7 +48,7 @@ export default function ProgressPage() {
   
   // For demo purposes, use a fixed user ID
   // In a real app, this would come from the authentication context
-  const userId = 1;
+  const userId = 2;
 
   // Query to fetch user progress data
   const { data, isLoading, error, refetch } = useQuery<UserProgress>({
