@@ -6,7 +6,6 @@ import { useReading } from "@/context/ReadingContext";
 import { FeedbackPanel } from "./FeedbackPanel";
 import { Question, UserResponse, Chunk } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { LexileDisplay } from "./LexileDisplay";
 
 export function ChunkReader() {
   const { session, submitAnswers, moveToNextChunk, moveToPreviousChunk } = useReading();
@@ -157,8 +156,23 @@ export function ChunkReader() {
             </p>
           </div>
           
-          {/* Display lexile score at the bottom of passage */}
-          <LexileDisplay feedback={activeFeedback} />
+          {/* Display score at the bottom of passage */}
+          {activeFeedback && activeFeedback.elo_update && (
+            <div className="mt-4 border-t pt-3 text-right">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
+                Score: {Math.round(((activeFeedback.rating + 200) / 400) * 100)}%
+              </span>
+              <span className={`ml-2 inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium ${
+                activeFeedback.elo_update.change > 0 
+                  ? 'bg-green-100 text-green-800' 
+                  : activeFeedback.elo_update.change < 0 
+                    ? 'bg-red-100 text-red-800' 
+                    : 'bg-gray-100 text-gray-800'
+              }`}>
+                Lexile: {activeFeedback.elo_update.newRating}L
+              </span>
+            </div>
+          )}
           
           <div className="mt-4 flex justify-between">
             <Button 
