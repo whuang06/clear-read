@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,6 +7,8 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  elo_rating: integer("elo_rating").default(1000).notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -21,8 +23,12 @@ export const readingSessions = pgTable("reading_sessions", {
   originalText: text("original_text").notNull(),
   status: text("status").notNull().default("input"),
   performance: integer("performance").default(0),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
+  average_difficulty: integer("average_difficulty"),
+  elo_change: integer("elo_change"),
+  completed_chunks: integer("completed_chunks").default(0),
+  total_chunks: integer("total_chunks").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const insertReadingSessionSchema = createInsertSchema(readingSessions).omit({
@@ -78,6 +84,8 @@ export const feedback = pgTable("feedback", {
   userId: integer("user_id").references(() => users.id),
   review: text("review").notNull(),
   rating: integer("rating").notNull(),
+  elo_impact: integer("elo_impact"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertFeedbackSchema = createInsertSchema(feedback).omit({
@@ -102,3 +110,22 @@ export type Response = typeof responses.$inferSelect;
 
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type Feedback = typeof feedback.$inferSelect;
+
+// Progress tracking
+export const userProgress = pgTable("user_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  elo_rating: integer("elo_rating").notNull(),
+  sessions_completed: integer("sessions_completed").default(0),
+  chunks_completed: integer("chunks_completed").default(0),
+  avg_performance: integer("avg_performance"),
+  avg_difficulty: integer("avg_difficulty"),
+});
+
+export const insertUserProgressSchema = createInsertSchema(userProgress).omit({
+  id: true,
+});
+
+export type InsertUserProgress = z.infer<typeof insertUserProgressSchema>;
+export type UserProgress = typeof userProgress.$inferSelect;

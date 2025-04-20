@@ -536,15 +536,26 @@ try:
             # Remove trailing punctuation
             summary = summary.rstrip('.,;:!?')
             
-            # Capitalize words properly for a headline
+            # Capitalize words properly for a headline (AP style)
             words = summary.split()
             if words:
-                # First word always capitalized
-                words[0] = words[0].capitalize()
+                # Function to determine if a word should be lowercase in a title
+                def should_be_lowercase(word):
+                    lowercase_words = {'a', 'an', 'and', 'at', 'but', 'by', 'for', 'in', 
+                                      'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet'}
+                    return word.lower() in lowercase_words and len(word) < 5
                 
-                # Last word always capitalized
+                # Always capitalize first and last word
+                words[0] = words[0].capitalize()
                 if len(words) > 1:
                     words[-1] = words[-1].capitalize()
+                
+                # Apply title case rules to the rest
+                for i in range(1, len(words) - 1):
+                    if should_be_lowercase(words[i]):
+                        words[i] = words[i].lower()
+                    else:
+                        words[i] = words[i].capitalize()
                 
                 # Recombine
                 summary = ' '.join(words)
