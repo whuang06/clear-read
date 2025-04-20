@@ -16,7 +16,9 @@ export interface Chunk {
   sentences: Sentence[];
   isSimplified?: boolean;
   simplificationLevel?: number;
-  status: "pending" | "active" | "completed";
+  isCombined?: boolean;
+  isCombinedInto?: number;
+  status: "pending" | "active" | "completed" | "combined";
 }
 
 export interface Question {

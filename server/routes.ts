@@ -1,5 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import fs from "fs";
+import path from "path";
+import { promisify } from "util";
+import { exec } from "child_process";
 import { storage } from "./storage";
 import {
   chunkText,
@@ -239,27 +243,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isFirstChunk && rating < 0) {
         console.log(`*** SIMPLIFYING due to negative rating ${rating} ***`);
         
+        // Handle extremely short chunks (less than 100 characters)
+        if (text.length < 100) {
+          console.log(`*** CHUNK TOO SHORT (${text.length} chars), RETURNING WITH NEXT_CHUNK_NEEDED FLAG ***`);
+          
+          // Signal to frontend that this chunk needs to be combined with the next
+          return res.json({
+            text,
+            isSimplified: false,
+            simplificationLevel: 0,
+            originalDifficulty,
+            newDifficulty: originalDifficulty,
+            nextChunkNeeded: true, // Signal that this chunk is too short
+            tooShort: true
+          });
+        }
+        
         // Choose simplification factor based on rating
         const simplificationFactor = rating <= -150 ? 0.4 : 
                                       rating <= -100 ? 0.3 : 0.2;
         
         console.log(`*** Using ${simplificationFactor * 100}% simplification ***`);
         
-        // Direct simplification
+        // DIRECT SIMPLIFICATION: Create a new method that directly calls the Python script
         try {
-          // Call our Python script to simplify the text
-          const { simplifiedText } = await adaptChunk(text, rating, false);
+          // Create a temporary script path for simplification
+          const tempScriptPath = path.join(__dirname, '../attached_assets/temp_simplify.py');
+          const scriptContent = `
+import json
+import sys
+import os
+import traceback
+
+try:
+    # Ensure the current directory is in the Python path
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, script_dir)
+    
+    from adaptive_reader import AdaptiveReader
+    
+    # Parse arguments from JSON file
+    with open(sys.argv[1], 'r') as f:
+        args = json.loads(f.read())
+    
+    text = args.get("text", "")
+    factor = args.get("factor", 0.0)
+    
+    # Create reader and simplify the text
+    reader = AdaptiveReader()
+    simplified = reader.simplify_chunk(text, factor)
+    
+    # Return the simplified text
+    result = {"simplifiedText": simplified}
+    print(json.dumps(result))
+except Exception as e:
+    print(json.dumps({
+        "error": str(e),
+        "traceback": traceback.format_exc()
+    }))
+    sys.exit(1)
+`;
+
+          // Write the temporary script
+          fs.writeFileSync(tempScriptPath, scriptContent);
           
-          // Force some text to always be simplified
-          const finalText = simplifiedText !== text ? simplifiedText : text;
-          
-          return res.json({
-            text: finalText,
-            isSimplified: true,  // ALWAYS true for negative ratings
-            simplificationLevel: Math.round(simplificationFactor * 100),
-            originalDifficulty,
-            newDifficulty: originalDifficulty // Just use original as fallback
-          });
+          try {
+            // Execute the simplification script
+            const execPromise = promisify(exec);
+            const tempArgsPath = `${tempScriptPath}.args.json`;
+            fs.writeFileSync(tempArgsPath, JSON.stringify({ 
+              text, 
+              factor: simplificationFactor 
+            }));
+            
+            const { stdout } = await execPromise(`python ${tempScriptPath} ${tempArgsPath}`);
+            const result = JSON.parse(stdout);
+            
+            if (result.error) {
+              throw new Error(result.error);
+            }
+            
+            console.log(`Simplified text preview: "${result.simplifiedText.substring(0, 30)}..."`);
+            
+            return res.json({
+              text: result.simplifiedText,
+              isSimplified: true,
+              simplificationLevel: Math.round(simplificationFactor * 100),
+              originalDifficulty,
+              newDifficulty: originalDifficulty
+            });
+            
+          } catch (execError) {
+            console.error("Simplification error:", execError);
+            throw execError;
+          } finally {
+            // Clean up temporary files
+            try {
+              if (fs.existsSync(tempScriptPath)) {
+                fs.unlinkSync(tempScriptPath);
+              }
+              if (fs.existsSync(tempScriptPath + '.args.json')) {
+                fs.unlinkSync(tempScriptPath + '.args.json');
+              }
+            } catch (cleanupError) {
+              console.error("Error cleaning up temp files:", cleanupError);
+            }
+          }
         } catch (simplifyError) {
           console.error("Simplification error:", simplifyError);
           // Continue with original text but still mark as simplified

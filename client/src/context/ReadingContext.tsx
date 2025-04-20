@@ -261,7 +261,61 @@ export function ReadingProvider({ children }: { children: ReactNode }) {
           if (adaptResponse.ok) {
             const adaptData = await adaptResponse.json();
             
-            // Always update the chunk with difficulty and simplification data
+            // Handle the case where the current chunk is too short
+            if (adaptData.tooShort && adaptData.nextChunkNeeded) {
+              console.log(`Chunk ${nextChunk.id} is too short (${nextChunk.text.length} chars), combining with next chunk`);
+              
+              // Check if there's another chunk after this one
+              if (nextChunkIndex + 1 < session.chunks.length) {
+                const followingChunk = session.chunks[nextChunkIndex + 1];
+                
+                // Combine the text of the current chunk with the next chunk
+                const combinedText = `${nextChunk.text}\n\n${followingChunk.text}`;
+                console.log(`Combined chunk length: ${combinedText.length} chars`);
+                
+                // Call adapt API again with the combined chunks
+                const combinedResponse = await apiRequest("POST", "/api/adapt-chunk", {
+                  chunkId: nextChunk.id,
+                  text: combinedText,
+                  rating: feedback.rating
+                });
+                
+                if (combinedResponse.ok) {
+                  const combinedData = await combinedResponse.json();
+                  
+                  // Update the session state to reflect the combined chunks
+                  setSession(prev => {
+                    const updatedChunks = [...prev.chunks];
+                    
+                    // Update the next chunk with combined text and metadata
+                    updatedChunks[nextChunkIndex] = {
+                      ...updatedChunks[nextChunkIndex],
+                      text: combinedData.text,
+                      difficulty: combinedData.isSimplified ? combinedData.newDifficulty : combinedData.originalDifficulty,
+                      isSimplified: combinedData.isSimplified,
+                      simplificationLevel: combinedData.simplificationLevel || 0,
+                      isCombined: true
+                    };
+                    
+                    // Mark the following chunk as combined so we can skip it
+                    if (updatedChunks[nextChunkIndex + 1]) {
+                      updatedChunks[nextChunkIndex + 1] = {
+                        ...updatedChunks[nextChunkIndex + 1],
+                        status: "combined",
+                        isCombinedInto: nextChunk.id
+                      };
+                    }
+                    
+                    return { ...prev, chunks: updatedChunks };
+                  });
+                  
+                  console.log("Chunks combined successfully");
+                  return; // We're done with adaptation
+                }
+              }
+            }
+            
+            // Normal case - just update the chunk with difficulty and simplification data
             setSession(prev => {
               const updatedChunks = [...prev.chunks];
               updatedChunks[nextChunkIndex] = {
