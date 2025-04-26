@@ -241,7 +241,7 @@ export default function Library() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [difficultyRange, setDifficultyRange] = useState<[number, number]>([0, 2000]);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all_levels");
   const [filteredBooks, setFilteredBooks] = useState<Book[]>(books);
   const [activeTab, setActiveTab] = useState("all");
 
@@ -273,7 +273,7 @@ export default function Library() {
   const handleDifficultyChange = (difficulty: string) => {
     setSelectedDifficulty(difficulty);
     
-    if (difficulty === "") {
+    if (difficulty === "all_levels" || difficulty === "") {
       setDifficultyRange([0, 2000]);
       return;
     }
@@ -331,7 +331,7 @@ export default function Library() {
               <SelectValue placeholder="Lexile Difficulty" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Levels</SelectItem>
+              <SelectItem value="all_levels">All Levels</SelectItem>
               {difficultyRanges.map((range) => (
                 <SelectItem key={range.name} value={range.name}>
                   {range.name} ({range.min}-{range.max}L)
@@ -372,7 +372,7 @@ export default function Library() {
             onClick={() => {
               setSelectedGenres([]);
               setDifficultyRange([0, 2000]);
-              setSelectedDifficulty("");
+              setSelectedDifficulty("all_levels");
             }}
           >
             Clear All
