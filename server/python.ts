@@ -605,8 +605,10 @@ except Exception as e:
       try {
         const summary = JSON.parse(stdout);
         if (summary && typeof summary === 'string' && summary.length > 0) {
-          console.log(`Generated summary: "${summary}"`);
-          return summary;
+          // Remove markdown formatting (like **bold**) before returning
+          const cleanSummary = summary.replace(/\*\*/g, "");
+          console.log(`Generated summary: "${cleanSummary}"`);
+          return cleanSummary;
         } else {
           console.log("Failed to generate summary, returning empty string");
           return "";
