@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Reading from "@/pages/reading";
 import Progress from "@/pages/progress";
+import Library from "@/pages/library";
 import { ReadingProvider } from "./context/ReadingContext";
 
 function Router() {
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/reading" component={Reading} />
       <Route path="/progress" component={Progress} />
+      <Route path="/library" component={Library} />
       <Route component={NotFound} />
     </Switch>
   );
