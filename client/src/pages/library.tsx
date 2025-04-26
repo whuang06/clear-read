@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -305,156 +306,159 @@ export default function Library() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex flex-col space-y-2 mb-8">
-        <h1 className="text-3xl font-bold">Reading Library</h1>
-        <p className="text-muted-foreground">
-          Browse books by difficulty level, genre, and more. Find your next reading adventure!
-        </p>
-      </div>
-      
-      {/* Search and filters */}
-      <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 mb-6">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by title or author..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+    <>
+      <Header />
+      <div className="container mx-auto py-8">
+        <div className="flex flex-col space-y-2 mb-8">
+          <h1 className="text-3xl font-bold">Reading Library</h1>
+          <p className="text-muted-foreground">
+            Browse books by difficulty level, genre, and more. Find your next reading adventure!
+          </p>
         </div>
         
-        <div className="flex space-x-2">
-          <Select value={selectedDifficulty} onValueChange={handleDifficultyChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Lexile Difficulty" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all_levels">All Levels</SelectItem>
-              {difficultyRanges.map((range) => (
-                <SelectItem key={range.name} value={range.name}>
-                  {range.name} ({range.min}-{range.max}L)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Button variant="outline" size="icon" className="flex-shrink-0">
-            <Filter className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      
-      {/* Display filters */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        {difficultyRange[0] > 0 || difficultyRange[1] < 2000 ? (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            Lexile: {difficultyRange[0]}-{difficultyRange[1]}L
-          </Badge>
-        ) : null}
-        
-        {selectedGenres.map(genre => (
-          <Badge 
-            key={genre} 
-            variant="outline" 
-            className="flex items-center gap-1 cursor-pointer"
-            onClick={() => toggleGenre(genre)}
-          >
-            {genre} ×
-          </Badge>
-        ))}
-        
-        {(difficultyRange[0] > 0 || difficultyRange[1] < 2000 || selectedGenres.length > 0) && (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => {
-              setSelectedGenres([]);
-              setDifficultyRange([0, 2000]);
-              setSelectedDifficulty("all_levels");
-            }}
-          >
-            Clear All
-          </Button>
-        )}
-      </div>
-      
-      {/* Genre tabs */}
-      <Tabs defaultValue="all" value={activeTab} onValueChange={handleTabChange} className="mb-6">
-        <TabsList className="mb-4 overflow-x-auto flex flex-nowrap space-x-2">
-          <TabsTrigger value="all">All Books</TabsTrigger>
-          <TabsTrigger value="Fiction">Fiction</TabsTrigger>
-          <TabsTrigger value="Non-fiction">Non-fiction</TabsTrigger>
-          <TabsTrigger value="Children">Children's</TabsTrigger>
-          <TabsTrigger value="Classic">Classics</TabsTrigger>
-          <TabsTrigger value="Fantasy">Fantasy</TabsTrigger>
-          <TabsTrigger value="Science Fiction">Sci-Fi</TabsTrigger>
-        </TabsList>
-      </Tabs>
-      
-      {/* Books grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredBooks.length > 0 ? (
-          filteredBooks.map((book) => (
-            <Card key={book.id} className="overflow-hidden flex flex-col h-full">
-              <div className="relative pb-[60%] bg-muted">
-                <img 
-                  src={book.coverUrl} 
-                  alt={`Cover of ${book.title}`} 
-                  className="absolute inset-0 h-full w-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://placehold.co/400x600?text=No+Cover';
-                  }}
-                />
-              </div>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg line-clamp-2">{book.title}</CardTitle>
-                    <CardDescription className="line-clamp-1">{book.author} ({book.year})</CardDescription>
-                  </div>
-                  <Badge variant="outline" className="whitespace-nowrap">
-                    {book.lexileScore}L
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="pb-2 flex-grow">
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {book.description}
-                </p>
-              </CardContent>
-              <CardFooter className="pt-0 flex flex-wrap gap-2">
-                {book.genre.slice(0, 3).map((g) => (
-                  <Badge 
-                    key={g} 
-                    variant="secondary" 
-                    className="text-xs cursor-pointer"
-                    onClick={() => toggleGenre(g)}
-                  >
-                    {g}
-                  </Badge>
-                ))}
-                {book.genre.length > 3 && (
-                  <Badge variant="outline" className="text-xs">+{book.genre.length - 3}</Badge>
-                )}
-              </CardFooter>
-              <div className="p-4 pt-0 mt-auto">
-                <Button variant="default" className="w-full flex items-center">
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Read Now
-                </Button>
-              </div>
-            </Card>
-          ))
-        ) : (
-          <div className="col-span-full text-center p-12">
-            <BookMarked className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No books found</h3>
-            <p className="text-muted-foreground">Try adjusting your filters or search terms</p>
+        {/* Search and filters */}
+        <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 mb-6">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by title or author..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        )}
+          
+          <div className="flex space-x-2">
+            <Select value={selectedDifficulty} onValueChange={handleDifficultyChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Lexile Difficulty" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all_levels">All Levels</SelectItem>
+                {difficultyRanges.map((range) => (
+                  <SelectItem key={range.name} value={range.name}>
+                    {range.name} ({range.min}-{range.max}L)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Button variant="outline" size="icon" className="flex-shrink-0">
+              <Filter className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Display filters */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          {difficultyRange[0] > 0 || difficultyRange[1] < 2000 ? (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Lexile: {difficultyRange[0]}-{difficultyRange[1]}L
+            </Badge>
+          ) : null}
+          
+          {selectedGenres.map(genre => (
+            <Badge 
+              key={genre} 
+              variant="outline" 
+              className="flex items-center gap-1 cursor-pointer"
+              onClick={() => toggleGenre(genre)}
+            >
+              {genre} ×
+            </Badge>
+          ))}
+          
+          {(difficultyRange[0] > 0 || difficultyRange[1] < 2000 || selectedGenres.length > 0) && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                setSelectedGenres([]);
+                setDifficultyRange([0, 2000]);
+                setSelectedDifficulty("all_levels");
+              }}
+            >
+              Clear All
+            </Button>
+          )}
+        </div>
+        
+        {/* Genre tabs */}
+        <Tabs defaultValue="all" value={activeTab} onValueChange={handleTabChange} className="mb-6">
+          <TabsList className="mb-4 overflow-x-auto flex flex-nowrap space-x-2">
+            <TabsTrigger value="all">All Books</TabsTrigger>
+            <TabsTrigger value="Fiction">Fiction</TabsTrigger>
+            <TabsTrigger value="Non-fiction">Non-fiction</TabsTrigger>
+            <TabsTrigger value="Children">Children's</TabsTrigger>
+            <TabsTrigger value="Classic">Classics</TabsTrigger>
+            <TabsTrigger value="Fantasy">Fantasy</TabsTrigger>
+            <TabsTrigger value="Science Fiction">Sci-Fi</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+        {/* Books grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredBooks.length > 0 ? (
+            filteredBooks.map((book) => (
+              <Card key={book.id} className="overflow-hidden flex flex-col h-full">
+                <div className="relative pb-[60%] bg-muted">
+                  <img 
+                    src={book.coverUrl} 
+                    alt={`Cover of ${book.title}`} 
+                    className="absolute inset-0 h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://placehold.co/400x600?text=No+Cover';
+                    }}
+                  />
+                </div>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg line-clamp-2">{book.title}</CardTitle>
+                      <CardDescription className="line-clamp-1">{book.author} ({book.year})</CardDescription>
+                    </div>
+                    <Badge variant="outline" className="whitespace-nowrap">
+                      {book.lexileScore}L
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pb-2 flex-grow">
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {book.description}
+                  </p>
+                </CardContent>
+                <CardFooter className="pt-0 flex flex-wrap gap-2">
+                  {book.genre.slice(0, 3).map((g) => (
+                    <Badge 
+                      key={g} 
+                      variant="secondary" 
+                      className="text-xs cursor-pointer"
+                      onClick={() => toggleGenre(g)}
+                    >
+                      {g}
+                    </Badge>
+                  ))}
+                  {book.genre.length > 3 && (
+                    <Badge variant="outline" className="text-xs">+{book.genre.length - 3}</Badge>
+                  )}
+                </CardFooter>
+                <div className="p-4 pt-0 mt-auto">
+                  <Button variant="default" className="w-full flex items-center">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Read Now
+                  </Button>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full text-center p-12">
+              <BookMarked className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">No books found</h3>
+              <p className="text-muted-foreground">Try adjusting your filters or search terms</p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
