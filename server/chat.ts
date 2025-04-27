@@ -28,8 +28,8 @@ export async function generateResponse(query: string): Promise<string> {
       return "I can't assist you right now. Please try again later.";
     }
     
-    // Updated to use the correct model name as per the error message
-    const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+    // Updated to use the latest Gemini model name available in the API
+    const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
