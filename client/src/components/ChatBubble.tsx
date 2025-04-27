@@ -110,7 +110,7 @@ export function ChatBubble({ className = "" }: ChatBubbleProps) {
       {isOpen && (
         <div className="absolute bottom-16 right-0 w-80 sm:w-96 bg-white rounded-lg shadow-xl overflow-hidden flex flex-col">
           <div className="bg-primary-600 p-3 text-white font-medium flex justify-between items-center">
-            <h3>Reading Assistant</h3>
+            <h3>ClearRead Assistant</h3>
             <Button variant="ghost" size="sm" onClick={toggleChat} className="h-8 w-8 p-0 text-white hover:bg-primary-700 rounded-full">
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
@@ -125,8 +125,8 @@ export function ChatBubble({ className = "" }: ChatBubbleProps) {
             ) : (
               <div className="text-center py-8">
                 <MessageCircle className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                <p className="text-gray-600 mb-1">Ask for a hint on the current passage</p>
-                <p className="text-gray-500 text-sm">I can help identify important sentences to focus on.</p>
+                <p className="text-gray-600 mb-1">How can I help you today?</p>
+                <p className="text-gray-500 text-sm">I'm here to provide general assistance with your questions.</p>
               </div>
             )}
             <div ref={messageEndRef} />
@@ -139,7 +139,7 @@ export function ChatBubble({ className = "" }: ChatBubbleProps) {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask for a hint on this passage..."
+                placeholder="Type your question here..."
                 className="min-h-[60px] resize-none"
                 disabled={isLoading}
               />
@@ -154,7 +154,7 @@ export function ChatBubble({ className = "" }: ChatBubbleProps) {
               </Button>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Hints will only guide you to important parts without giving answers.
+              I'll provide helpful guidance on any questions you might have.
             </p>
           </div>
         </div>
