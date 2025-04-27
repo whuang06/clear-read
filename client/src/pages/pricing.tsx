@@ -6,126 +6,129 @@ export default function Pricing() {
   return (
     <>
       <Header />
-      <main className="flex flex-col items-center min-h-screen bg-[#0a0a2a] text-white px-4 py-16">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="max-w-4xl mx-auto text-center mb-12">
-          <h1 className="text-5xl font-bold mb-2">
-            no commitment.
+          <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl md:text-6xl mb-2">
+            <span className="block">No commitment.</span>
+            <span className="block text-primary-600">Cancel anytime.</span>
           </h1>
-          <h1 className="text-5xl font-bold mb-8">
-            cancel anytime.
-          </h1>
-          <p className="text-xl mb-12">Try ClearRead for one month free</p>
+          <p className="mt-4 max-w-3xl mx-auto text-xl text-gray-500">
+            Try ClearRead for one month free
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mx-auto mb-12">
           {/* Read Plan */}
-          <div className="bg-[#1e1e42] rounded-lg overflow-hidden shadow-lg">
+          <div className="bg-white rounded-lg overflow-hidden shadow border">
             <div className="p-6">
-              <h2 className="text-2xl font-bold mb-6">Read</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Read</h2>
               <ul className="space-y-4">
                 <li className="flex items-start">
-                  <Check className="text-green-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>Limited learning content</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Limited learning content</span>
                 </li>
                 <li className="flex items-start">
-                  <X className="text-red-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>Unlimited content generation</span>
+                  <X className="text-red-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-500">Unlimited content generation</span>
                 </li>
                 <li className="flex items-start">
-                  <X className="text-red-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>Educator tools</span>
+                  <X className="text-red-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-500">Educator tools</span>
                 </li>
                 <li className="flex items-start">
-                  <X className="text-red-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>Learning analytics</span>
+                  <X className="text-red-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-500">Learning analytics</span>
                 </li>
                 <li className="flex items-start">
-                  <X className="text-red-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>LMS integration</span>
+                  <X className="text-red-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-500">LMS integration</span>
                 </li>
                 <li className="flex items-start">
-                  <X className="text-red-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>No ads</span>
+                  <X className="text-red-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-500">No ads</span>
                 </li>
               </ul>
             </div>
           </div>
 
           {/* ClearRead Plan */}
-          <div className="bg-white rounded-lg overflow-hidden shadow-lg relative">
-            <div className="absolute top-4 right-4 bg-white border-2 border-blue-500 rounded-full p-1">
-              <Check className="text-blue-500 h-5 w-5" />
+          <div className="bg-white rounded-lg overflow-hidden shadow-lg relative border-2 border-primary-500">
+            <div className="absolute top-4 right-4 bg-white border-2 border-primary-500 rounded-full p-1">
+              <Check className="text-primary-500 h-5 w-5" />
             </div>
-            <div className="bg-gradient-to-r from-green-400 to-blue-500 p-6">
-              <h2 className="text-2xl font-bold text-white mb-6">ClearRead</h2>
+            <div className="bg-gradient-to-r from-primary-50 to-primary-100 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">ClearRead</h2>
               <ul className="space-y-4">
                 <li className="flex items-start">
-                  <Check className="text-green-100 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span className="text-white">Expansive learning content</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Expansive learning content</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="text-green-100 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span className="text-white">Unlimited content generation</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Unlimited content generation</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="text-green-100 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span className="text-white">Educator tools</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Educator tools</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="text-green-100 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span className="text-white">Learning analytics</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Learning analytics</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="text-green-100 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span className="text-white">Personalized</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Personalized</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="text-green-100 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span className="text-white">No ads</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">No ads</span>
                 </li>
               </ul>
             </div>
           </div>
 
           {/* Enterprise Plan */}
-          <div className="bg-[#1e1e42] rounded-lg overflow-hidden shadow-lg">
+          <div className="bg-white rounded-lg overflow-hidden shadow border">
             <div className="p-6">
-              <h2 className="text-2xl font-bold mb-6">ClearRead Enterprise</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">ClearRead Enterprise</h2>
               <ul className="space-y-4">
                 <li className="flex items-start">
-                  <Check className="text-green-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>Unlimited content generation</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Unlimited content generation</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="text-green-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>LMS integration</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">LMS integration</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="text-green-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>Data analytics tools</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Data analytics tools</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="text-green-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>Custom implementation options</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Custom implementation options</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="text-green-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>Easy scalability</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Easy scalability</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="text-green-400 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
-                  <span>No ads</span>
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">No ads</span>
                 </li>
               </ul>
             </div>
           </div>
         </div>
 
-        <Button 
-          className="bg-white text-blue-500 hover:bg-gray-100 font-bold py-3 px-8 rounded-full text-lg"
-        >
-          START MY ONE MONTH FREE
-        </Button>
+        <div className="text-center">
+          <Button 
+            size="lg"
+            className="font-bold py-3 px-8 rounded-full text-lg"
+          >
+            START MY ONE MONTH FREE
+          </Button>
+        </div>
       </main>
     </>
   );
