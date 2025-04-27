@@ -44,24 +44,13 @@ export function ChatBubble({ className = "" }: ChatBubbleProps) {
   const sendMessage = async () => {
     if (!message.trim()) return;
 
-    // Get the current active chunk text
-    const activeChunk = session.chunks.find(chunk => chunk.status === "active");
-    if (!activeChunk) {
-      toast({
-        title: "No active reading",
-        description: "Please start a reading session to get hints.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       setIsLoading(true);
       
       const response = await apiRequest(
         "POST",
         "/api/chat",
-        { text: activeChunk.text }
+        { query: message.trim() }
       );
 
       const data = await response.json();
@@ -72,10 +61,10 @@ export function ChatBubble({ className = "" }: ChatBubbleProps) {
         throw new Error("No hint received from the server");
       }
     } catch (error) {
-      console.error("Error getting hint:", error);
+      console.error("Error getting response:", error);
       toast({
-        title: "Couldn't get a hint",
-        description: "Sorry, I couldn't analyze this text right now. Please try again later.",
+        title: "Couldn't process your request",
+        description: "Sorry, I couldn't answer your question right now. Please try again later.",
         variant: "destructive"
       });
     } finally {

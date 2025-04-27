@@ -1,39 +1,35 @@
 import { Request, Response } from "express";
 
 /**
- * Generates a reading hint using Gemini API
- * @param chunkText - The text content of a reading chunk
- * @returns - A hint about important sentences or concepts to focus on
+ * Generates a response using Gemini API for any type of query
+ * @param query - The user's question or query
+ * @returns - A helpful response from the assistant
  */
-export async function generateReadingHint(chunkText: string): Promise<string> {
+export async function generateResponse(query: string): Promise<string> {
   try {
-    // Format the request to get specific hints that don't reveal answers
+    // Format the request for a general purpose assistant
     const prompt = `
-      As a helpful reading assistant, analyze the following text and give the reader ONE brief hint about what to pay attention to.
+      As ClearRead Assistant, a helpful AI assistant for the ClearRead platform, please provide a helpful response to the user's query.
       
-      DO NOT summarize or explain the entire text.
-      DO NOT give away answers to potential questions.
-      DO NOT write more than 2-3 short sentences.
+      Keep responses informative but concise.
+      Be friendly and conversational in your tone.
+      If the query is about reading or text comprehension, provide specific guidance.
+      For questions about the platform, explain features clearly.
       
-      Instead:
-      - Identify 1-2 key sentences or phrases that are important for understanding the text
-      - Or suggest a specific concept, term or relationship to pay attention to
-      - Or point out a subtle detail that might be easily missed
+      User query:
+      "${query}"
       
-      Text to analyze:
-      "${chunkText}"
-      
-      Hint (make it brief and helpful without giving away too much):
+      Your response:
     `;
 
     // Check if GEMINI_API_KEY exists
     if (!process.env.GEMINI_API_KEY) {
       console.error("Missing GEMINI_API_KEY environment variable");
-      return "I can't provide a hint right now. Please try again later.";
+      return "I can't assist you right now. Please try again later.";
     }
     
     // Updated to use the correct model name as per the error message
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+    const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${process.env.GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -50,25 +46,25 @@ export async function generateReadingHint(chunkText: string): Promise<string> {
         ],
         generationConfig: {
           temperature: 0.4,
-          maxOutputTokens: 80,
+          maxOutputTokens: 150, // Increased for more comprehensive answers
         }
       })
     });
 
-    const data = await response.json();
+    const data = await apiResponse.json();
     
-    if (!response.ok) {
+    if (!apiResponse.ok) {
       console.error("Gemini API error:", data);
-      return "I couldn't analyze this text right now. Please try again later.";
+      return "I couldn't process your request right now. Please try again later.";
     }
     
-    // Extract the hint from the response
-    const hint = data.candidates[0]?.content?.parts[0]?.text || "I couldn't generate a hint for this text.";
+    // Extract the response from the API
+    const assistantResponse = data.candidates[0]?.content?.parts[0]?.text || "I couldn't answer that question at the moment.";
     
-    return hint.trim();
+    return assistantResponse.trim();
   } catch (error) {
-    console.error("Error generating reading hint:", error);
-    return "I encountered an error while analyzing this text. Please try again later.";
+    console.error("Error generating response:", error);
+    return "I encountered an error while processing your question. Please try again later.";
   }
 }
 
@@ -77,15 +73,15 @@ export async function generateReadingHint(chunkText: string): Promise<string> {
  */
 export async function handleChatRequest(req: Request, res: Response) {
   try {
-    const { text } = req.body;
+    const { query } = req.body;
 
-    if (!text) {
-      return res.status(400).json({ error: "Text is required" });
+    if (!query) {
+      return res.status(400).json({ error: "Query is required" });
     }
 
-    const hint = await generateReadingHint(text);
+    const answer = await generateResponse(query);
     
-    return res.json({ hint });
+    return res.json({ hint: answer }); // Keeping 'hint' key for backward compatibility
   } catch (error) {
     console.error("Chat request error:", error);
     return res.status(500).json({ 
