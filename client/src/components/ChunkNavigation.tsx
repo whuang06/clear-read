@@ -85,7 +85,7 @@ export function ChunkNavigation() {
                       <p className="truncate text-sm font-semibold text-gray-900">
                         {chunk.summary ? (
                           <span className="inline-block">
-                            {chunk.summary}
+                            {chunk.summary?.replace(/\*\*/g, "").replace(/["']/g, "")}
                             {chunk.isCombined && (
                               <span className="ml-1 text-xs font-normal text-purple-600">(Combined)</span>
                             )}

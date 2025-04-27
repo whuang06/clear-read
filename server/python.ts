@@ -543,8 +543,13 @@ try:
             # Remove quotes if present
             if summary.startswith('"') and summary.endswith('"'):
                 summary = summary[1:-1].strip()
-            
+            elif summary.startswith("'") and summary.endswith("'"):
+                summary = summary[1:-1].strip()
+                
             # Clean up potential artifacts and ensure proper headline format
+            # Remove all quotation marks from the title
+            summary = summary.replace('"', '').replace("'", "")
+            
             # Remove trailing punctuation
             summary = summary.rstrip('.,;:!?')
             

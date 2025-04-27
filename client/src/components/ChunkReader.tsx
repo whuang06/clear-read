@@ -145,7 +145,7 @@ export function ChunkReader() {
           {activeChunk.summary && (
             <div className="mb-4">
               <h3 className="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">
-                {activeChunk.summary?.replace(/\*\*/g, "")}
+                {activeChunk.summary?.replace(/\*\*/g, "").replace(/["']/g, "")}
               </h3>
             </div>
           )}
