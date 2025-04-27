@@ -85,12 +85,15 @@ export function ChatBubble({ className = "" }: ChatBubbleProps) {
       <Button
         onClick={toggleChat}
         size="icon"
-        className="h-14 w-14 rounded-full shadow-lg bg-primary-600 hover:bg-primary-700"
+        className="h-16 w-16 rounded-full shadow-xl bg-primary-600 hover:bg-primary-700 border-2 border-white flex items-center justify-center relative animate-pulse-slow"
       >
         {isOpen ? (
-          <X className="h-6 w-6" />
+          <X className="h-7 w-7" />
         ) : (
-          <MessageCircle className="h-6 w-6" />
+          <>
+            <MessageCircle className="h-8 w-8" />
+            <span className="absolute -top-1 -right-1 bg-red-500 h-4 w-4 rounded-full border border-white"></span>
+          </>
         )}
         <span className="sr-only">Toggle chat</span>
       </Button>
@@ -113,8 +116,11 @@ export function ChatBubble({ className = "" }: ChatBubbleProps) {
               </div>
             ) : (
               <div className="text-center py-8">
-                <MessageCircle className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                <p className="text-gray-600 mb-1">How can I help you today?</p>
+                <div className="relative inline-block mx-auto mb-3">
+                  <MessageCircle className="h-12 w-12 mx-auto text-primary-500 mb-2" />
+                  <span className="absolute bottom-2 right-0 w-4 h-4 bg-primary-600 rounded-full border-2 border-white"></span>
+                </div>
+                <p className="text-gray-600 mb-1 font-medium">How can I help you today?</p>
                 <p className="text-gray-500 text-sm">I'm here to provide general assistance with your questions.</p>
               </div>
             )}
