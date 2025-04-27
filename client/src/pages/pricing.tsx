@@ -124,7 +124,7 @@ export default function Pricing() {
         <div className="text-center">
           <Button 
             size="lg"
-            className="font-bold py-3 px-8 rounded-full text-lg"
+            className="bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-8 rounded-full text-lg"
           >
             START MY ONE MONTH FREE
           </Button>
