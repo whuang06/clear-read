@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { BookOpen, Library } from "lucide-react";
+import { BookOpen, Library, DollarSign } from "lucide-react";
 import { useLocation } from "wouter";
 
 export function Header() {
@@ -56,6 +56,17 @@ export function Header() {
               }`}
             >
               My Progress
+            </Link>
+            <Link 
+              href="/pricing" 
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                location === "/pricing" 
+                  ? "bg-primary-50 text-primary-700" 
+                  : "text-gray-500 hover:text-primary-500"
+              }`}
+            >
+              <DollarSign className="h-4 w-4 inline mr-1" />
+              Pricing
             </Link>
           </nav>
         </div>

@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { TextInput } from "@/components/TextInput";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { BookOpen, BookText, Lightbulb, Brain, LineChart, ArrowRight, Library, BookCopy } from "lucide-react";
+import { BookOpen, BookText, Lightbulb, Brain, LineChart, ArrowRight, Library, BookCopy, DollarSign } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
@@ -23,7 +23,7 @@ export default function Home() {
             Transform any text into bite-sized chunks with personalized comprehension exercises 
             that adapt to your performance.
           </p>
-          <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
+          <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center space-x-4 md:mt-8">
             <div className="rounded-md shadow">
               <Button 
                 size="lg"
@@ -32,6 +32,17 @@ export default function Home() {
               >
                 <BookText className="mr-2 h-5 w-5" />
                 Start Reading Now
+              </Button>
+            </div>
+            <div className="mt-3 sm:mt-0 rounded-md shadow">
+              <Button 
+                variant="outline"
+                size="lg"
+                onClick={() => setLocation('/pricing')}
+                className="w-full flex items-center justify-center"
+              >
+                <DollarSign className="mr-2 h-5 w-5" />
+                View Pricing
               </Button>
             </div>
           </div>
