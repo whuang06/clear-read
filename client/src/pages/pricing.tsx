@@ -127,7 +127,7 @@ export default function Pricing() {
           <div className="bg-white rounded-lg overflow-hidden shadow border">
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Business API</h2>
-              <p className="text-gray-500 mb-4">$0.005<span className="text-sm">/request</span></p>
+              <p className="text-gray-500 mb-4">$1.50<span className="text-sm">/million tokens</span></p>
               <ul className="space-y-4">
                 <li className="flex items-start">
                   <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
