@@ -233,8 +233,20 @@ except Exception as e:
           
           // If we have a current chunk but it's too small, combine with this one
           if (currentChunk.text.length < MIN_CHUNK_LENGTH || currentChunk.sentences.length < MIN_SENTENCES) {
-            // Combine text with proper spacing
-            currentChunk.text = `${currentChunk.text}\n\n${chunk.text}`;
+            // Store original text for logging
+            const originalText = currentChunk.text;
+            
+            // Combine text with proper spacing, ensuring we get the entire chunk content
+            currentChunk.text = `${currentChunk.text.trim()}\n\n${chunk.text.trim()}`;
+            
+            // Log chunk combining for debugging
+            console.log(`Combining chunks: 
+              Original chunk (${originalText.length} chars): "${originalText.substring(0, 50)}${originalText.length > 50 ? '...' : ''}"
+              Added chunk (${chunk.text.length} chars): "${chunk.text.substring(0, 50)}${chunk.text.length > 50 ? '...' : ''}"
+              Combined (${currentChunk.text.length} chars)`);
+            
+            // Mark the chunk as combined
+            currentChunk.isCombined = true;
             
             // Expand the token count and range
             currentChunk.token_count += chunk.token_count;
@@ -255,6 +267,8 @@ except Exception as e:
             
             // If the new chunk is also large enough, add it directly
             if (chunk.text.length >= MIN_CHUNK_LENGTH && chunk.sentences.length >= MIN_SENTENCES) {
+              // Log chunk for debugging
+              console.log(`Adding independent chunk (${chunk.text.length} chars): "${chunk.text.substring(0, 50)}${chunk.text.length > 50 ? '...' : ''}"`);
               combinedChunks.push(currentChunk);
               currentChunk = null;
             }
@@ -263,10 +277,25 @@ except Exception as e:
         
         // Don't forget the last chunk if there is one
         if (currentChunk) {
+          console.log(`Adding final chunk (${currentChunk.text.length} chars): "${currentChunk.text.substring(0, 50)}${currentChunk.text.length > 50 ? '...' : ''}"`);
           combinedChunks.push(currentChunk);
         }
         
+        // Log summary of chunk processing
         console.log(`After combining: ${combinedChunks.length} chunks (reduced from ${parsedOutput.length})`);
+        
+        // Check if we have chunks after processing
+        if (combinedChunks.length === 0) {
+          console.error("No valid chunks after processing - possible data loss or API issue");
+          throw new Error("Failed to process text chunks. Please try again with different content.");
+        }
+        
+        // Validate chunk content
+        for (let i = 0; i < combinedChunks.length; i++) {
+          if (!combinedChunks[i].text || combinedChunks[i].text.trim().length === 0) {
+            console.error(`Empty chunk detected at index ${i}`);
+          }
+        }
         
         // Now the regular processing continues with our combined chunks
         

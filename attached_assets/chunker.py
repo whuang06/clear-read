@@ -45,39 +45,107 @@ def chunk_text(
         }
     }
     url = chunk_url or CHUNK_URL
-    resp = requests.post(url, headers=headers, json=payload)
+    logging.info(f"Sending chunking request to {url} with text of length {len(text)}")
+    
+    # Initialize response variable outside the try block to avoid unbound error
+    resp = None
+    
     try:
+        resp = requests.post(url, headers=headers, json=payload)
         resp.raise_for_status()
     except requests.HTTPError as err:
-        logging.error(f"Request to {url} failed ({resp.status_code}): {resp.text}")
+        if resp is not None:
+            logging.error(f"Request to {url} failed ({resp.status_code}): {resp.text}")
+        else:
+            logging.error(f"Request to {url} failed: {str(err)}")
         raise
-    body = resp.json()
+    except Exception as ex:
+        logging.error(f"Unexpected error in chunking request: {str(ex)}")
+        raise
+    
+    if resp is None:
+        raise ValueError("Failed to get response from chunking API")
+        
+    try:
+        body = resp.json()
+        logging.info(f"Received API response with status code {resp.status_code}")
+    except ValueError as json_err:
+        logging.error(f"Failed to parse JSON response: {resp.text[:500]}")
+        raise ValueError(f"Invalid JSON response from chunking API: {str(json_err)}")
     # Handle API response which may be a list of chunks or a dict with 'chunks'
     if isinstance(body, list):
         raw_chunks = body
     else:
         raw_chunks = body.get("chunks", [])
+        
+    # Validate we actually got chunks
+    if not raw_chunks:
+        logging.error("No chunks received from API. Response: " + str(body)[:500])
+        raise ValueError("No chunks returned from chunking API")
+    
+    logging.info(f"Received {len(raw_chunks)} chunks from API")
     chunks: List[SemanticChunk] = []
-    for rc in raw_chunks:
-        sents = [
-            SemanticSentence(
-                text=s["text"],
-                start_index=s["start_index"],
-                end_index=s["end_index"],
-                token_count=s["token_count"],
-                embedding=s.get("embedding")
+    
+    for i, rc in enumerate(raw_chunks):
+        # Validate chunk structure
+        if not isinstance(rc, dict):
+            logging.error(f"Invalid chunk format at index {i}: {type(rc)} - {str(rc)[:100]}")
+            continue
+            
+        if "text" not in rc or not rc["text"]:
+            logging.error(f"Chunk at index {i} missing text field: {str(rc)[:100]}")
+            continue
+            
+        try:
+            # Extract sentence information
+            sents = [
+                SemanticSentence(
+                    text=s["text"],
+                    start_index=s["start_index"],
+                    end_index=s["end_index"],
+                    token_count=s["token_count"],
+                    embedding=s.get("embedding")
+                )
+                for s in rc.get("sentences", [])
+            ]
+            
+            # Create the chunk
+            chunks.append(
+                SemanticChunk(
+                    text=rc["text"],
+                    start_index=rc.get("start_index", 0),
+                    end_index=rc.get("end_index", len(rc["text"])),
+                    token_count=rc.get("token_count", 0),
+                    sentences=sents
+                )
             )
-            for s in rc.get("sentences", [])
-        ]
-        chunks.append(
-            SemanticChunk(
-                text=rc["text"],
-                start_index=rc["start_index"],
-                end_index=rc["end_index"],
-                token_count=rc["token_count"],
-                sentences=sents
-            )
-        )
+            
+            # Log chunk stats for debugging
+            logging.info(f"Chunk #{i+1}: {len(rc['text'])} chars, {len(sents)} sentences")
+            
+        except KeyError as key_err:
+            logging.error(f"Missing required field in chunk {i}: {key_err}")
+            # Create chunk with partial data if possible
+            if "text" in rc:
+                chunks.append(
+                    SemanticChunk(
+                        text=rc["text"],
+                        start_index=rc.get("start_index", 0),
+                        end_index=rc.get("end_index", len(rc["text"])),
+                        token_count=rc.get("token_count", 0),
+                        sentences=[]
+                    )
+                )
+                logging.info(f"Added partial chunk #{i+1} with missing fields")
+        except Exception as e:
+            logging.error(f"Error processing chunk {i}: {str(e)}")
+            
+    # Final validation
+    if not chunks:
+        logging.error("No valid chunks could be created")
+        raise ValueError("Failed to create any valid chunks from API response")
+        
+    logging.info(f"Successfully created {len(chunks)} chunks")
     return chunks
 
 if __name__ == "__main__":
