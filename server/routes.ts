@@ -19,6 +19,7 @@ import { getReadingLevel } from "./elo";
 import { eq } from "drizzle-orm";
 import { users, userProgress, type User } from "@shared/schema";
 import { db } from "./db";
+import { handleChatRequest } from "./chat";
 
 // Extended feedback interface to support Lexile score updates
 interface Feedback {
@@ -629,6 +630,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Chat API endpoint for reading hints
+  app.post("/api/chat", handleChatRequest);
   
   const httpServer = createServer(app);
 
