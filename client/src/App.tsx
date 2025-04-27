@@ -10,6 +10,7 @@ import Progress from "@/pages/progress";
 import Library from "@/pages/library";
 import Pricing from "@/pages/pricing";
 import { ReadingProvider } from "./context/ReadingContext";
+import { ChatBubble } from "@/components/ChatBubble";
 
 function Router() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <ReadingProvider>
           <Toaster />
           <Router />
+          <ChatBubble />
         </ReadingProvider>
       </TooltipProvider>
     </QueryClientProvider>

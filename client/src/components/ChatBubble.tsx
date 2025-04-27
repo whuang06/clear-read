@@ -58,11 +58,11 @@ export function ChatBubble({ className = "" }: ChatBubbleProps) {
     try {
       setIsLoading(true);
       
-      const response = await apiRequest<{ hint: string }>({
-        url: "/api/chat",
-        method: "POST",
-        data: { text: activeChunk.text }
-      });
+      const response = await apiRequest(
+        "POST",
+        "/api/chat",
+        { text: activeChunk.text }
+      );
 
       const data = await response.json();
       if (data.hint) {
