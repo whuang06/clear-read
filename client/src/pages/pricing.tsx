@@ -17,11 +17,12 @@ export default function Pricing() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mx-auto mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mx-auto mb-12">
           {/* Read Plan */}
           <div className="bg-white rounded-lg overflow-hidden shadow border">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Read</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Read</h2>
+              <p className="text-gray-500 mb-4">Free</p>
               <ul className="space-y-4">
                 <li className="flex items-start">
                   <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
@@ -57,7 +58,8 @@ export default function Pricing() {
               <Check className="text-primary-500 h-5 w-5" />
             </div>
             <div className="bg-gradient-to-r from-primary-50 to-primary-100 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">ClearRead</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">ClearRead</h2>
+              <p className="text-gray-700 mb-4">$9.99<span className="text-sm">/month</span></p>
               <ul className="space-y-4">
                 <li className="flex items-start">
                   <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
@@ -90,7 +92,8 @@ export default function Pricing() {
           {/* Enterprise Plan */}
           <div className="bg-white rounded-lg overflow-hidden shadow border">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">ClearRead Enterprise</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">ClearRead Enterprise</h2>
+              <p className="text-gray-500 mb-4">Custom pricing</p>
               <ul className="space-y-4">
                 <li className="flex items-start">
                   <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
@@ -115,6 +118,40 @@ export default function Pricing() {
                 <li className="flex items-start">
                   <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
                   <span className="text-gray-700">No ads</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          {/* Business API Plan */}
+          <div className="bg-white rounded-lg overflow-hidden shadow border">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Business API</h2>
+              <p className="text-gray-500 mb-4">Starting at $499/month</p>
+              <ul className="space-y-4">
+                <li className="flex items-start">
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">API access to chunking algorithm</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Lexile-adaptability model access</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">1M API calls per month</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Technical implementation support</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">Dedicated account manager</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="text-green-500 h-5 w-5 mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">99.9% uptime SLA</span>
                 </li>
               </ul>
             </div>
